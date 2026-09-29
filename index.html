@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>東京旅行</title>
+
+<!-- iOS「加入主畫面」設定 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="東京旅行">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" id="touchIcon" href="">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'media' };
+</script>
+
+<style>
+  :root { color-scheme: light dark; }
+  html, body {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC", "Noto Sans TC", "Helvetica Neue", sans-serif;
+    background: #F2F2F7;
+    -webkit-user-select: none; user-select: none;
+  }
+  @media (prefers-color-scheme: dark) { body { background: #000; } }
+
+  .safe-top    { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .main-pad    { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
+
+  .glass {
+    background: rgba(242,242,247,.82);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+  .glass-bar {
+    background: rgba(249,249,249,.88);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+  @media (prefers-color-scheme: dark) {
+    .glass     { background: rgba(0,0,0,.78); }
+    .glass-bar { background: rgba(22,22,24,.88); }
+  }
+
+  .tap { transition: transform .12s ease, opacity .12s ease; }
+  .tap:active { transform: scale(.97); opacity: .8; }
+
+  .fade-in { animation: fadeIn .28s ease both; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .flash { animation: flash 1.4s ease; }
+  @keyframes flash {
+    0%, 60% { box-shadow: 0 0 0 3px rgba(225,29,72,.55); }
+    100%    { box-shadow: 0 0 0 3px rgba(225,29,72,0); }
+  }
+
+  .now-dot::after {
+    content: ""; position: absolute; inset: -5px; border-radius: 9999px;
+    border: 2px solid #E11D48; animation: pulse 1.8s ease-out infinite;
+  }
+  @keyframes pulse { from { transform: scale(.6); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+
+  .tabular { font-variant-numeric: tabular-nums; }
+  .quiet .fade-in { animation: none; }
+</style>
+</head>
+
+<body class="text-neutral-900 dark:text-neutral-100 antialiased">
+
+  <!-- 頂部：標題 + 日期選擇 -->
+  <header class="glass sticky top-0 z-30 safe-top border-b border-black/5 dark:border-white/10">
+    <div class="px-4 pt-3 pb-2 flex items-end justify-between">
+      <div>
+        <p id="status" class="text-[13px] font-semibold text-rose-600 dark:text-rose-400"></p>
+        <h1 id="pageTitle" class="text-[28px] leading-tight font-bold tracking-tight">行程</h1>
+      </div>
+      <p class="text-[12px] text-neutral-500 dark:text-neutral-400 text-right leading-snug pb-1">
+        2026/10/12 – 10/17<br>6 天 5 夜
+      </p>
+    </div>
+    <div id="dayPills" class="flex gap-2 overflow-x-auto no-scrollbar px-4 pb-3"></div>
+  </header>
+
+  <main id="view" class="main-pad px-4 pt-4 max-w-xl mx-auto"></main>
+
+  <!-- 底部分頁列 -->
+  <nav class="glass-bar fixed bottom-0 inset-x-0 z-30 safe-bottom border-t border-black/10 dark:border-white/10">
+    <div class="max-w-xl mx-auto grid grid-cols-2">
+      <button data-tab="plan" class="tab-btn tap flex flex-col items-center gap-0.5 pt-2 pb-1.5">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><circle cx="8" cy="14" r="1.2" fill="currentColor"/><path d="M11.5 14h5M8 17.5h8.5"/>
+        </svg>
+        <span class="text-[10.5px] font-medium">行程</span>
+      </button>
+      <button data-tab="route" class="tab-btn tap flex flex-col items-center gap-0.5 pt-2 pb-1.5">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="2.5" width="14" height="15" rx="3.5"/><path d="M5 10.5h14"/><circle cx="8.8" cy="14" r="1" fill="currentColor"/><circle cx="15.2" cy="14" r="1" fill="currentColor"/><path d="M8 17.5 5.5 21.5M16 17.5l2.5 4"/>
+        </svg>
+        <span class="text-[10.5px] font-medium">交通</span>
+      </button>
+    </div>
+  </nav>
+
+<script>
+/* =========================================================
+   交通工具 / 路線樣式
+   ========================================================= */
+const LINES = {
+  hsr:        { name: '台灣高鐵',       icon: '🚄', bg: '#F47920', fg: '#fff' },
+  tymrt:      { name: '桃園機場捷運',   icon: '🚆', bg: '#8246AF', fg: '#fff' },
+  flight:     { name: '飛機',           icon: '✈️', bg: '#0EA5E9', fg: '#fff' },
+  skyliner:   { name: '京成 Skyliner',  icon: '🚆', bg: '#1B2A5E', fg: '#fff' },
+  yamanote:   { name: 'JR 山手線',      icon: '🚃', bg: '#80C241', fg: '#fff' },
+  keihin:     { name: 'JR 京濱東北線',  icon: '🚃', bg: '#00B2E5', fg: '#fff' },
+  keiyo:      { name: 'JR 京葉線',      icon: '🚃', bg: '#C9252F', fg: '#fff' },
+  sobu:       { name: 'JR 總武線',      icon: '🚃', bg: '#FFD400', fg: '#1a1a1a' },
+  hibiya:     { name: '日比谷線',       icon: '🚇', bg: '#9CAEB7', fg: '#fff' },
+  ginza:      { name: '銀座線',         icon: '🚇', bg: '#FF9500', fg: '#fff' },
+  asakusa:    { name: '都營淺草線',     icon: '🚇', bg: '#E85298', fg: '#fff' },
+  tobu:       { name: '東武晴空塔線',   icon: '🚆', bg: '#1F5BA8', fg: '#fff' },
+  yurikamome: { name: '百合海鷗號',     icon: '🚝', bg: '#1A8FC9', fg: '#fff' },
+  walk:       { name: '步行',           icon: '🚶', bg: '#8E8E93', fg: '#fff' },
+  taxi:       { name: '計程車',         icon: '🚕', bg: '#EAB308', fg: '#1a1a1a' },
+  car:        { name: 'Uber',           icon: '🚗', bg: '#3F3F46', fg: '#fff' },
+};
+
+/* 常用地點（Google Maps 搜尋字串，用日文名稱定位最準） */
+const P = {
+  hotel:     'Candeo Hotels 上野公園',
+  uguisudani:'鶯谷駅',
+  nippori:   '日暮里駅',
+  narita:    '成田国際空港',
+  thsrTC:    '高鐵台中站',
+  thsrTY:    '高鐵桃園站',
+  tpeT2:     '桃園國際機場第二航廈',
+  tpe:       '桃園國際機場',
+  gyutan:    '牛たんの檸檬 浅草店',
+  sensoji:   '浅草寺',
+  skytree:   '東京スカイツリー',
+  akiba:     '秋葉原駅',
+  ameyoko:   'アメ横商店街',
+  tokyoSt:   '東京駅',
+  maihama:   '舞浜駅',
+  tdr:       '東京ディズニーリゾート',
+  teamlab:   'チームラボプラネッツ TOKYO',
+  senkyaku:  '豊洲 千客万来',
+  diver:     'ダイバーシティ東京 プラザ',
+  ginza:     '銀座駅',
+  meiji:     '明治神宮',
+  takeshita: '竹下通り',
+  shibuya:   '渋谷スクランブル交差点',
+  sky:       'SHIBUYA SKY',
+  omoide:    '思い出横丁',
+  tocho:     '東京都庁 展望室',
+  shinjuku:  '新宿駅',
+  uenoPark:  '上野恩賜公園',
+};
+
+/* =========================================================
+   行程資料
+   leg 欄位：
+     o / d  = Google Maps 起點 / 終點
+     mode   = transit | walking | driving | null（飛機不提供導航）
+     steps  = [路線代碼, 說明, 時間]
+     alt    = 替代方案（同樣格式）
+   item 欄位：t = 預計開始；end = 預計結束（省略時＝下一站開始）
+              tw:true 表示台灣時間；endLabel / endNote 用於跨時區（飛機）
+   ========================================================= */
+const DAYS = [
+  {
+    date: '2026-10-12', md: '10/12', wd: '一', title: '抵達東京', sub: '日本體育節連假最後一天',
+    color: ['#F43F5E', '#FB923C'],
+    items: [
+      { t: '08:00', icon: '🚄', title: '台中烏日 → 高鐵桃園站', tw: true, leg: 'd1a' },
+      { t: '~09:00', icon: '🚆', title: '高鐵桃園站 → 機場第二航廈', note: '機場捷運 A18 → A13', tw: true, leg: 'd1b' },
+      { t: '12:15', icon: '✈️', title: '桃園 → 成田', note: '12:15 起飛 · 16:35 抵達（日本時間）', tw: true, endLabel: '16:35', endNote: '日本時間', leg: 'd1c' },
+      { t: '16:35', icon: '🛂', title: '入境、領行李', note: '連假尾聲人多，抓 1 小時' },
+      { t: '~17:40', icon: '🚆', title: '成田機場 → 日暮里', leg: 'd1d' },
+      { t: '~18:30', icon: '🚃', title: '日暮里 → 鶯谷', leg: 'd1e' },
+      { t: '~18:45', icon: '🏨', title: '飯店 Check-in、放行李', note: 'CANDEO HOTELS 上野公園', leg: 'd1f' },
+      { t: '19:30', icon: '🍖', title: '牛たんの檸檬 淺草店', note: '淺草 2-9-13，TX 淺草站 A1 旁 · 21:30 打烊', tags: ['需訂位'], leg: 'd1g' },
+      { t: '~21:00', end: '21:30', icon: '🌙', title: '回飯店', note: '檸檬 21:30 打烊', leg: 'd1h' },
+    ],
+    tips: [
+      '飛機若延誤時間會非常緊，建議訂位改 20:00，或保留 30 分鐘緩衝。',
+      '當天是日本國定假日（體育節），入境可能較多人。',
+    ],
+    legs: [
+      { id: 'd1a', from: '高鐵台中站', to: '高鐵桃園站', o: P.thsrTC, d: P.thsrTY, mode: 'transit', dur: '40–50 分',
+        steps: [['hsr', '台中（烏日）→ 桃園', '40–50 分']] },
+      { id: 'd1b', from: '高鐵桃園站', to: '桃園機場 T2', o: P.thsrTY, d: P.tpeT2, mode: 'transit', dur: '約 20 分',
+        steps: [['tymrt', 'A18 高鐵桃園站 → A13 機場第二航廈', '20 分']] },
+      { id: 'd1c', from: '桃園 TPE', to: '成田 NRT', mode: null, dur: '12:15 → 16:35',
+        steps: [['flight', '桃園 12:15 起飛 → 成田 16:35 抵達', '']],
+        warn: '確認是成田第 1 還是第 2 航廈（Skyliner 兩站都停）' },
+      { id: 'd1d', from: '成田機場', to: '日暮里', o: P.narita, d: P.nippori, mode: 'transit', dur: '36–40 分',
+        steps: [['skyliner', '成田機場 → 日暮里（指定車次）', '36–40 分']] },
+      { id: 'd1e', from: '日暮里', to: '鶯谷', o: P.nippori, d: P.uguisudani, mode: 'transit', dur: '2 分',
+        steps: [['yamanote', '往上野・東京方向，1 站', '2 分']] },
+      { id: 'd1f', from: '鶯谷站', to: '飯店', o: P.uguisudani, d: P.hotel, mode: 'walking', dur: '3 分',
+        steps: [['walk', '鶯谷站 → CANDEO HOTELS 上野公園', '3 分']] },
+      { id: 'd1g', from: '飯店', to: '牛たんの檸檬', o: P.hotel, d: P.gyutan, mode: 'driving', dur: '約 10 分',
+        steps: [['taxi', '建議搭計程車，約 ¥1,000–1,300', '10 分']],
+        alt: { label: '步行', mode: 'walking', dur: '約 25 分', steps: [['walk', '飯店 → 淺草', '25 分']] } },
+      { id: 'd1h', from: '牛たんの檸檬', to: '飯店', o: P.gyutan, d: P.hotel, mode: 'driving', dur: '約 10 分',
+        steps: [['taxi', '計程車回飯店', '10 分']],
+        alt: { label: '步行', mode: 'walking', dur: '約 25 分', steps: [['walk', '淺草 → 飯店', '25 分']] } },
+    ],
+  },
+  {
+    date: '2026-10-13', md: '10/13', wd: '二', title: '淺草・晴空塔・秋葉原', sub: '晚上逛阿美橫丁',
+    color: ['#F59E0B', '#EF4444'],
+    items: [
+      { t: '08:30', icon: '⛩️', title: '淺草寺・雷門・仲見世通', note: '早去人少，店家約 9:30–10:00 開', leg: 'd2a' },
+      { t: '11:00', icon: '🗼', title: '前往晴空塔', note: '推薦走 SUMIDA RIVER WALK，順路拍晴空塔', leg: 'd2b' },
+      { t: '11:30', icon: '🥩', title: '叙叙苑 晴空塔店 午餐', note: '→ 上展望台 → 逛 Solamachi', tags: ['需訂位', '晴空塔門票'] },
+      { t: '15:00', icon: '🎮', title: '秋葉原', note: '電器、動漫、扭蛋、女僕咖啡', leg: 'd2c' },
+      { t: '18:00', icon: '🏮', title: '上野阿美橫丁 晚餐、逛街', note: '店家多約 20:00 收，居酒屋較晚', leg: 'd2d' },
+      { t: '20:30', end: '21:00', icon: '🏨', title: '回飯店', leg: 'd2e' },
+    ],
+    tips: [
+      '先秋葉原、晚上阿美橫丁：阿美橫丁晚上最熱鬧，逛完離飯店也最近。',
+      '牛たんの檸檬週二公休，所以 Day 1 去是對的。',
+    ],
+    legs: [
+      { id: 'd2a', from: '飯店', to: '淺草寺', o: P.hotel, d: P.sensoji, mode: 'transit', dur: '約 20 分',
+        steps: [['walk', '飯店 → 入谷站', ''], ['hibiya', '入谷 → 上野', ''], ['ginza', '上野 → 淺草', '']],
+        alt: { label: '計程車（最省事）', mode: 'driving', dur: '約 10 分', steps: [['taxi', '飯店 → 淺草寺', '10 分']] } },
+      { id: 'd2b', from: '淺草寺', to: '晴空塔', o: P.sensoji, d: P.skytree, mode: 'walking', dur: '約 20 分',
+        steps: [['walk', 'SUMIDA RIVER WALK 過隅田川（推薦）', '20 分']],
+        alt: { label: '搭電車', mode: 'transit', dur: '3 分', steps: [['tobu', '淺草 → 東京晴空塔站，1 站', '3 分']] } },
+      { id: 'd2c', from: '晴空塔', to: '秋葉原', o: P.skytree, d: P.akiba, mode: 'transit', dur: '約 25 分',
+        steps: [['asakusa', '押上 → 淺草橋', ''], ['sobu', '淺草橋 → 秋葉原，1 站', '']] },
+      { id: 'd2d', from: '秋葉原', to: '阿美橫丁', o: P.akiba, d: P.ameyoko, mode: 'transit', dur: '約 5 分',
+        steps: [['yamanote', '秋葉原 → 御徒町，1 站', '2 分']],
+        alt: { label: '步行', mode: 'walking', dur: '約 15 分', steps: [['walk', '沿高架橋下走', '15 分']] } },
+      { id: 'd2e', from: '阿美橫丁', to: '飯店', o: P.ameyoko, d: P.hotel, mode: 'transit', dur: '約 10 分',
+        steps: [['yamanote', '上野 → 鶯谷，1 站', '2 分'], ['walk', '鶯谷站 → 飯店', '3 分']],
+        alt: { label: '步行', mode: 'walking', dur: '約 20 分', steps: [['walk', '穿過上野公園周邊', '20 分']] } },
+    ],
+  },
+  {
+    date: '2026-10-14', md: '10/14', wd: '三', title: '東京迪士尼', sub: '萬聖節活動期間',
+    color: ['#8B5CF6', '#EC4899'],
+    items: [
+      { t: '07:30', icon: '🏨', title: '飯店出發', note: '總計約 50–60 分', leg: 'd3a' },
+      { t: '08:30', icon: '🏰', title: '抵達樂園排隊入園', note: '先下載官方 App，入園後買 Premier Access / 抽表演', tags: ['指定日門票'] },
+      { t: '~21:00', end: '22:00', icon: '🎆', title: '看完夜間遊行 / 煙火回飯店', leg: 'd3b' },
+    ],
+    tips: [
+      '10 月是迪士尼萬聖節活動期間，週三平日相對好一點。',
+      '東京站京葉線月台離很遠，站內要走 10–15 分，時間要抓進去。',
+    ],
+    legs: [
+      { id: 'd3a', from: '飯店', to: '舞濱（迪士尼）', o: P.hotel, d: P.maihama, mode: 'transit', dur: '50–60 分',
+        steps: [['walk', '飯店 → 鶯谷站', '3 分'], ['yamanote', '鶯谷 → 東京（或京濱東北線）', '10 分'],
+                ['walk', '東京站內轉乘京葉線（月台很遠）', '10–15 分'], ['keiyo', '東京 → 舞濱', '15 分']] },
+      { id: 'd3b', from: '舞濱', to: '飯店', o: P.maihama, d: P.hotel, mode: 'transit', dur: '50–60 分',
+        steps: [['keiyo', '舞濱 → 東京', '15 分'], ['walk', '東京站內轉乘', '10–15 分'],
+                ['yamanote', '東京 → 鶯谷（或京濱東北線）', '10 分'], ['walk', '鶯谷站 → 飯店', '3 分']] },
+    ],
+  },
+  {
+    date: '2026-10-15', md: '10/15', wd: '四', title: 'teamLab・豐洲・台場・銀座', sub: '百合海鷗號一路串起來',
+    color: ['#06B6D4', '#6366F1'],
+    items: [
+      { t: '08:30', icon: '🏨', title: '飯店出發', leg: 'd4a' },
+      { t: '09:30', icon: '🎨', title: 'teamLab Planets', note: '新豐洲站北口 1 分 · 08:00–22:00\n會踩水到膝蓋，穿可捲起的褲子，不要穿裙子', tags: ['指定時段門票'] },
+      { t: '11:30', icon: '🍣', title: '豐洲市場 / 千客萬來 午餐', note: '海鮮丼、壽司', leg: 'd4b' },
+      { t: '13:30', icon: '🤖', title: '台場', note: 'DiverCity 實物大鋼彈、台場海濱公園、自由女神像', leg: 'd4c' },
+      { t: '17:00', icon: '🌅', title: '看夕陽＋彩虹大橋夜景' },
+      { t: '18:30', icon: '🛍️', title: '銀座 晚餐、逛街', leg: 'd4d' },
+      { t: '21:00', end: '21:30', icon: '🏨', title: '回飯店', note: '日比谷線直達免轉乘', leg: 'd4e' },
+    ],
+    tips: [
+      'teamLab、豐洲、台場都在百合海鷗號沿線，可買一日券（約 ¥820）。',
+    ],
+    legs: [
+      { id: 'd4a', from: '飯店', to: 'teamLab Planets', o: P.hotel, d: P.teamlab, mode: 'transit', dur: '約 50 分',
+        steps: [['walk', '飯店 → 鶯谷站', '3 分'], ['yamanote', '鶯谷 → 新橋', '15 分'],
+                ['yurikamome', '新橋 → 新豐洲', '30 分'], ['walk', '北口出站', '1 分']] },
+      { id: 'd4b', from: 'teamLab', to: '豐洲千客萬來', o: P.teamlab, d: P.senkyaku, mode: 'transit', dur: '約 5 分',
+        steps: [['yurikamome', '新豐洲 → 市場前，1 站', '2 分']] },
+      { id: 'd4c', from: '豐洲', to: '台場 DiverCity', o: P.senkyaku, d: P.diver, mode: 'transit', dur: '約 15 分',
+        steps: [['yurikamome', '市場前 → 台場', '15 分']] },
+      { id: 'd4d', from: '台場', to: '銀座', o: P.diver, d: P.ginza, mode: 'transit', dur: '約 25 分',
+        steps: [['yurikamome', '台場 → 新橋', '15 分'], ['walk', '新橋 → 銀座', '10 分']] },
+      { id: 'd4e', from: '銀座', to: '飯店', o: P.ginza, d: P.hotel, mode: 'transit', dur: '約 25 分',
+        steps: [['hibiya', '銀座 → 入谷，直達免轉乘', '17 分'], ['walk', '入谷站 → 飯店', '']] },
+    ],
+  },
+  {
+    date: '2026-10-16', md: '10/16', wd: '五', title: '原宿・澀谷・新宿', sub: '山手線西側順向走完',
+    color: ['#10B981', '#0EA5E9'],
+    items: [
+      { t: '09:00', icon: '🏨', title: '飯店出發', leg: 'd5a' },
+      { t: '09:30', icon: '⛩️', title: '明治神宮 → 竹下通 → 表參道', leg: 'd5b' },
+      { t: '12:30', icon: '🍜', title: '經貓街走到澀谷，午餐', leg: 'd5c' },
+      { t: '13:30', icon: '🚦', title: '澀谷十字路口・忠犬八公', note: 'MIYASHITA PARK、澀谷 PARCO' },
+      { t: '16:30', icon: '🌇', title: 'SHIBUYA SKY 看日落', note: '當天日落約 17:10 · 澀谷 Scramble Square', tags: ['日落時段很搶'], leg: 'd5d' },
+      { t: '18:30', icon: '🏮', title: '新宿', note: '思出橫丁晚餐、歌舞伎町、東京都廳免費展望台夜景', leg: 'd5e' },
+      { t: '21:30', end: '22:00', icon: '🏨', title: '回飯店', leg: 'd5g' },
+    ],
+    tips: [
+      '飯店在山手線東側，西側一天走完原宿 → 澀谷 → 新宿最順，不走回頭路。',
+    ],
+    legs: [
+      { id: 'd5a', from: '飯店', to: '明治神宮', o: P.hotel, d: P.meiji, mode: 'transit', dur: '約 35 分',
+        steps: [['walk', '飯店 → 鶯谷站', '3 分'], ['yamanote', '鶯谷 → 原宿（經池袋方向）', '30 分']] },
+      { id: 'd5b', from: '明治神宮', to: '竹下通', o: P.meiji, d: P.takeshita, mode: 'walking', dur: '約 10 分',
+        steps: [['walk', '明治神宮 → 竹下通 → 表參道', '']] },
+      { id: 'd5c', from: '表參道', to: '澀谷', o: '表参道駅', d: P.shibuya, mode: 'walking', dur: '約 15 分',
+        steps: [['walk', '經貓街（Cat Street）', '15 分']] },
+      { id: 'd5d', from: '澀谷十字路口', to: 'SHIBUYA SKY', o: P.shibuya, d: P.sky, mode: 'walking', dur: '約 5 分',
+        steps: [['walk', '澀谷 Scramble Square 頂樓', '5 分']] },
+      { id: 'd5e', from: '澀谷', to: '新宿 思出橫丁', o: '渋谷駅', d: P.omoide, mode: 'transit', dur: '約 10 分',
+        steps: [['yamanote', '澀谷 → 新宿', '7 分']] },
+      { id: 'd5f', from: '思出橫丁', to: '東京都廳展望台', o: P.omoide, d: P.tocho, mode: 'walking', dur: '約 15 分',
+        steps: [['walk', '新宿西口 → 都廳（免費夜景）', '15 分']] },
+      { id: 'd5g', from: '新宿', to: '飯店', o: P.shinjuku, d: P.hotel, mode: 'transit', dur: '約 30 分',
+        steps: [['yamanote', '新宿 → 鶯谷（經池袋方向）', '27 分'], ['walk', '鶯谷站 → 飯店', '3 分']] },
+    ],
+  },
+  {
+    date: '2026-10-17', md: '10/17', wd: '六', title: '上野公園・返台', sub: '最晚 10:00 離開飯店',
+    color: ['#64748B', '#0EA5E9'],
+    items: [
+      { t: '08:00', icon: '🌳', title: '早餐，上野公園・不忍池散步', note: '飯店就在旁邊', leg: 'd6a' },
+      { t: '09:30', icon: '🧳', title: '飯店 Check-out' },
+      { t: '~10:00', icon: '🚆', title: '前往成田機場', leg: 'd6b' },
+      { t: '~11:00', icon: '🛫', title: '抵達成田，辦理登機', note: '國際線建議 2.5 小時前到', tags: ['11:30 前'] },
+      { t: '11:30', end: '14:00', icon: '🎁', title: '機場管制區內買伴手禮', note: '東京香蕉、Royce、薯條三兄弟等都有 · 14:00 前到登機門' },
+      { t: '14:30', end: '18:15', endLabel: '17:15', endNote: '台灣時間', icon: '✈️', title: '成田 → 桃園', note: '14:30 起飛 · 17:15 抵達（台灣時間）', leg: 'd6c' },
+      { t: '~18:00', icon: '🚆', title: '桃園機場 → 高鐵桃園站', tw: true, leg: 'd6d' },
+      { t: '~18:40', icon: '🚄', title: '高鐵桃園 → 台中烏日', tw: true, leg: 'd6e' },
+      { t: '~19:40', end: '20:10', icon: '🚗', title: 'Uber 回家', tw: true },
+    ],
+    tips: [
+      '14:30 的班機早上時間很少，不建議排遠的景點。',
+      '伴手禮也可以前幾天在上野站 ecute 或阿美橫丁先買。',
+    ],
+    legs: [
+      { id: 'd6a', from: '飯店', to: '上野公園', o: P.hotel, d: P.uenoPark, mode: 'walking', dur: '約 10 分',
+        steps: [['walk', '飯店 → 上野公園・不忍池', '10 分']] },
+      { id: 'd6b', from: '飯店', to: '成田機場', o: P.hotel, d: P.narita, mode: 'transit', dur: '約 60 分',
+        steps: [['walk', '飯店 → 鶯谷站', '3 分'], ['yamanote', '鶯谷 → 日暮里，1 站', '2 分'],
+                ['skyliner', '日暮里 → 成田機場', '36–40 分']],
+        warn: '第 1、第 2 航廈是不同站，別坐過頭' },
+      { id: 'd6c', from: '成田 NRT', to: '桃園 TPE', mode: null, dur: '14:30 → 17:15',
+        steps: [['flight', '成田 14:30 起飛 → 桃園 17:15 抵達', '']] },
+      { id: 'd6d', from: '桃園機場', to: '高鐵桃園站', o: P.tpe, d: P.thsrTY, mode: 'transit', dur: '約 20 分',
+        steps: [['tymrt', '機場 → A18 高鐵桃園站', '20 分']] },
+      { id: 'd6e', from: '高鐵桃園站', to: '高鐵台中站', o: P.thsrTY, d: P.thsrTC, mode: 'transit', dur: '40–50 分',
+        steps: [['hsr', '桃園 → 台中（烏日）', '40–50 分']] },
+    ],
+  },
+];
+
+/* =========================================================
+   狀態與工具
+   ========================================================= */
+const $ = (s) => document.querySelector(s);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+};
+
+/* 預覽用：網址加上 ?now=2026-10-13T12:10（東京時間）可模擬旅途中某個時刻 */
+const SIM = (() => {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{1,2}):(\d{2})$/.exec(new URLSearchParams(location.search).get('now') || '');
+  return m ? { date: m[1], min: +m[2] * 60 + +m[3] } : null;
+})();
+
+function tokyoNow() {
+  if (SIM) return { ...SIM };
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const g = (t) => parts.find((p) => p.type === t).value;
+  return { date: `${g('year')}-${g('month')}-${g('day')}`, min: (parseInt(g('hour'), 10) % 24) * 60 + parseInt(g('minute'), 10) };
+}
+const toMin = (t) => { const m = /(\d{1,2}):(\d{2})/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : null; };
+const dayDiff = (a, b) => Math.round((new Date(a) - new Date(b)) / 86400000);
+const hhmm = (m) => { m = ((Math.round(m) % 1440) + 1440) % 1440; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
+function fmtDur(m) {
+  m = Math.round(Math.abs(m));
+  const h = Math.floor(m / 60), r = m % 60;
+  return h ? (r ? `${h} 小時 ${r} 分` : `${h} 小時`) : `${r} 分`;
+}
+
+function mapsUrl(dest, mode, origin) {
+  const q = new URLSearchParams({ api: '1', destination: dest, travelmode: mode });
+  if (origin) q.set('origin', origin);
+  return 'https://www.google.com/maps/dir/?' + q.toString();
+}
+
+/* 每個行程的預計時段，統一換算成「東京時間的分鐘數」方便比較（台灣時間 +60） */
+function schedule(day) {
+  const abs = (t, tw) => toMin(t) + (tw ? 60 : 0);
+  return day.items.map((it, i) => {
+    const start = abs(it.t, it.tw);
+    const next = day.items[i + 1];
+    const end = it.end ? abs(it.end, it.tw) : next ? abs(next.t, next.tw) : start + 30;
+    const local = (m) => hhmm(m - (it.tw ? 60 : 0)); // 以該行程所在時區顯示
+    return { start, end, local };
+  });
+}
+
+/* 進度：以使用者點「我在這」的行程為基準 */
+function progress(dayIdx) {
+  if (dayIdx !== todayIdx) return null;
+  const raw = store.get('here-' + DAYS[dayIdx].date);
+  if (raw == null) return null;
+  const at = +raw;
+  const sc = schedule(DAYS[dayIdx])[at];
+  if (!sc) return null;
+  const now = tokyo.min;
+  if (now < sc.start) return { at, kind: 'ahead', diff: sc.start - now, shift: now - sc.start };
+  if (now <= sc.end)  return { at, kind: 'ontime', left: sc.end - now, shift: 0 };
+  return { at, kind: 'behind', diff: now - sc.end, shift: now - sc.end };
+}
+
+let tokyo = tokyoNow();
+let todayIdx = DAYS.findIndex((d) => d.date === tokyo.date);
+
+const state = {
+  day: todayIdx >= 0 ? todayIdx : Math.min(+(store.get('day') || 0), DAYS.length - 1),
+  tab: store.get('tab') === 'route' ? 'route' : 'plan',
+};
+
+/* 依表定時間，現在應該在哪個行程（只有旅途當天才標示） */
+function currentItemIndex(dayIdx) {
+  if (dayIdx !== todayIdx) return -1;
+  let idx = -1;
+  schedule(DAYS[dayIdx]).forEach((sc, i) => { if (sc.start <= tokyo.min) idx = i; });
+  return idx;
+}
+
+/* =========================================================
+   畫面
+   ========================================================= */
+function renderStatus() {
+  const first = DAYS[0].date, last = DAYS[DAYS.length - 1].date;
+  let s;
+  if (tokyo.date < first) s = `距離出發還有 ${dayDiff(first, tokyo.date)} 天 ✈️`;
+  else if (tokyo.date > last) s = '旅程已結束，下次見 👋';
+  else s = `旅程第 ${todayIdx + 1} 天・今天`;
+  $('#status').textContent = s;
+}
+
+function renderPills() {
+  $('#dayPills').innerHTML = DAYS.map((d, i) => {
+    const on = i === state.day;
+    return `
+      <button data-day="${i}" class="tap shrink-0 w-[62px] rounded-2xl py-1.5 text-center transition-colors
+        ${on ? 'text-white shadow-md' : 'bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300'}"
+        style="${on ? `background:linear-gradient(135deg,${d.color[0]},${d.color[1]})` : ''}">
+        <div class="text-[11px] font-semibold ${on ? 'opacity-90' : 'text-neutral-400'}">Day ${i + 1}</div>
+        <div class="text-[15px] font-bold tabular leading-tight">${d.md}</div>
+        <div class="text-[11px] ${on ? 'opacity-90' : 'text-neutral-400'}">週${d.wd}${i === todayIdx ? ' · 今' : ''}</div>
+      </button>`;
+  }).join('');
+  const active = $(`#dayPills [data-day="${state.day}"]`);
+  if (active) active.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+}
+
+function stepChip(key) {
+  const l = LINES[key];
+  return `<span class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold whitespace-nowrap"
+    style="background:${l.bg};color:${l.fg}">${l.icon} ${l.name}</span>`;
+}
+
+function hero(d, i) {
+  return `
+    <section class="fade-in rounded-3xl p-5 text-white shadow-lg mb-5"
+      style="background:linear-gradient(135deg,${d.color[0]},${d.color[1]})">
+      <p class="text-[13px] font-semibold opacity-90">DAY ${i + 1} · ${d.md}（${d.wd}）</p>
+      <h2 class="text-[24px] font-bold leading-tight mt-0.5">${d.title}</h2>
+      <p class="text-[14px] opacity-90 mt-0.5">${d.sub}</p>
+    </section>`;
+}
+
+function tipsBlock(d) {
+  if (!d.tips?.length) return '';
+  return `
+    <section class="fade-in rounded-2xl bg-amber-50 dark:bg-amber-400/10 border border-amber-200/70 dark:border-amber-400/20 p-4 mt-2">
+      <p class="text-[13px] font-bold text-amber-700 dark:text-amber-300 mb-1.5">💡 小提醒</p>
+      <ul class="space-y-1.5 text-[14px] leading-relaxed text-amber-900 dark:text-amber-100/90">
+        ${d.tips.map((t) => `<li class="flex gap-2"><span class="opacity-60">•</span><span>${t}</span></li>`).join('')}
+      </ul>
+    </section>`;
+}
+
+/* ---------- 行程（時間軸） ---------- */
+function progressBanner(d, sc, pg) {
+  if (state.day !== todayIdx) return '';
+  if (!pg) {
+    return `
+      <section class="fade-in rounded-2xl bg-white dark:bg-neutral-900 shadow-sm p-3.5 mb-4 flex items-center gap-3">
+        <span class="text-[22px]">📍</span>
+        <p class="text-[13.5px] text-neutral-600 dark:text-neutral-300 leading-snug">
+          抵達景點時點卡片上的 <b>「我在這」</b>，就能知道進度是超前還是落後。
+        </p>
+      </section>`;
+  }
+  const it = d.items[pg.at], s = sc[pg.at];
+  let bg, head, sub;
+  if (pg.kind === 'ahead') {
+    bg = 'linear-gradient(135deg,#10B981,#059669)';
+    head = `超前 ${fmtDur(pg.diff)}`;
+    sub = `「${it.title}」表定 ${s.local(s.start)} 開始，時間很充裕`;
+  } else if (pg.kind === 'ontime') {
+    bg = pg.left <= 10 ? 'linear-gradient(135deg,#F59E0B,#EA580C)' : 'linear-gradient(135deg,#3B82F6,#2563EB)';
+    head = pg.left <= 10 ? '該準備出發了' : '進度準時 👍';
+    sub = `表定 ${s.local(s.end)} 離開「${it.title}」，還有 ${fmtDur(pg.left)}`;
+  } else {
+    bg = pg.diff <= 15 ? 'linear-gradient(135deg,#F59E0B,#EA580C)' : 'linear-gradient(135deg,#F43F5E,#DC2626)';
+    head = `落後 ${fmtDur(pg.diff)}`;
+    sub = `表定 ${s.local(s.end)} 就該離開「${it.title}」，後面行程約延後 ${fmtDur(pg.diff)}`;
+  }
+  return `
+    <section class="fade-in rounded-2xl p-4 mb-4 text-white shadow-md" style="background:${bg}">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-[12px] font-semibold opacity-90">現在 ${hhmm(tokyo.min)} · 你在 ${it.icon} ${it.title}</p>
+          <p class="text-[24px] font-bold leading-tight mt-0.5 tabular">${head}</p>
+          <p class="text-[13px] opacity-95 mt-1 leading-snug">${sub}</p>
+        </div>
+        <button data-clear-here class="tap shrink-0 rounded-full bg-white/20 text-[12px] font-semibold px-3 py-1.5">重設</button>
+      </div>
+    </section>`;
+}
+
+function renderPlan() {
+  const d = DAYS[state.day];
+  const sc = schedule(d);
+  const cur = currentItemIndex(state.day);
+  const pg = progress(state.day);
+  const isToday = state.day === todayIdx;
+  const legById = Object.fromEntries(d.legs.map((l) => [l.id, l]));
+
+  const rows = d.items.map((it, i) => {
+    const s = sc[i];
+    const leg = it.leg && legById[it.leg];
+    const isNow = i === cur;
+    const isHere = pg && pg.at === i;
+    const isLast = i === d.items.length - 1;
+    const tags = (it.tags || []).map((t) =>
+      `<span class="rounded-full bg-rose-100 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 text-[11px] font-semibold px-2 py-0.5">${t}</span>`).join('');
+    const legRow = leg ? `
+      <button data-goleg="${leg.id}" class="tap mt-3 w-full flex items-center gap-2 rounded-xl bg-neutral-100 dark:bg-neutral-800/80 px-2.5 py-2 text-left">
+        <div class="flex flex-wrap gap-1 flex-1 min-w-0">${[...new Set(leg.steps.map((st) => st[0]))].map(stepChip).join('')}</div>
+        <span class="text-[12px] text-neutral-500 dark:text-neutral-400 whitespace-nowrap tabular">${leg.dur}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-neutral-400 shrink-0"><path d="m9 6 6 6-6 6"/></svg>
+      </button>` : '';
+
+    /* 依目前進度推估的時間（只顯示在「我在這」之後、且差距 ≥ 5 分的行程） */
+    const projected = pg && i > pg.at && Math.abs(pg.shift) >= 5 ? `
+      <p class="mt-2 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold tabular
+        ${pg.shift > 0 ? 'bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-300'}">
+        ${pg.shift > 0 ? '⏳' : '⏩'} 依目前進度約 ${s.local(s.start + pg.shift)} 開始（${pg.shift > 0 ? '晚' : '早'} ${fmtDur(pg.shift)}）
+      </p>` : '';
+
+    /* 沒按「我在這」時，依表定提示剩餘時間 */
+    const nowHint = isNow && !pg ? `
+      <p class="text-[12px] font-semibold text-rose-600 dark:text-rose-400 mt-2 tabular">
+        ${tokyo.min <= s.end ? `表定 ${s.local(s.end)} 前往下一站 · 還有 ${fmtDur(s.end - tokyo.min)}` : `表定 ${s.local(s.end)} 已結束`}
+      </p>` : '';
+
+    const hereBtn = isToday ? `
+      <button data-here="${i}" class="tap shrink-0 rounded-full text-[11.5px] font-semibold px-2.5 py-1 whitespace-nowrap
+        ${isHere ? 'bg-rose-600 text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300'}">
+        📍 ${isHere ? '你在這' : '我在這'}
+      </button>` : '';
+
+    return `
+      <li class="relative flex gap-3 fade-in" style="animation-delay:${i * 35}ms">
+        <div class="w-[52px] shrink-0 text-right pt-3.5 tabular">
+          <div class="text-[14px] font-bold leading-tight ${isNow ? 'text-rose-600 dark:text-rose-400' : 'text-neutral-700 dark:text-neutral-200'}">${it.t}</div>
+          <div class="text-[11.5px] text-neutral-400 leading-tight mt-0.5">– ${it.endLabel || s.local(s.end)}</div>
+          ${it.endNote ? `<div class="text-[9.5px] text-neutral-400 leading-tight">(${it.endNote})</div>` : ''}
+          ${it.tw ? '<div class="text-[10px] text-sky-600 dark:text-sky-400 font-semibold mt-1">台灣時間</div>' : ''}
+        </div>
+        <div class="relative w-3 shrink-0 flex justify-center">
+          ${isLast ? '' : '<span class="absolute top-5 -bottom-3 w-[2px] bg-neutral-300/70 dark:bg-neutral-700"></span>'}
+          <span class="relative mt-[18px] w-3 h-3 rounded-full ring-4 ring-[#F2F2F7] dark:ring-black ${isNow ? 'now-dot' : ''}"
+            style="background:${isNow ? '#E11D48' : d.color[0]}"></span>
+        </div>
+        <div class="flex-1 min-w-0 pb-3">
+          <div class="rounded-2xl bg-white dark:bg-neutral-900 p-3.5 shadow-sm ${isHere ? 'ring-2 ring-rose-500' : isNow ? 'ring-2 ring-rose-500/50' : ''}">
+            ${isNow ? '<p class="text-[11px] font-bold text-rose-600 dark:text-rose-400 mb-1">● 表定現在</p>' : ''}
+            <div class="flex items-start gap-2.5">
+              <span class="text-[22px] leading-none mt-0.5">${it.icon}</span>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-start justify-between gap-2">
+                  <h3 class="text-[16px] font-semibold leading-snug">${it.title}</h3>
+                  ${hereBtn}
+                </div>
+                ${it.note ? `<p class="text-[13.5px] text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed whitespace-pre-line">${it.note}</p>` : ''}
+                <p class="text-[12px] text-neutral-400 mt-1.5 tabular">⏱ 預計約 ${fmtDur(s.end - s.start)}</p>
+                ${tags ? `<div class="flex flex-wrap gap-1.5 mt-2">${tags}</div>` : ''}
+                ${nowHint}${projected}
+              </div>
+            </div>
+            ${legRow}
+          </div>
+        </div>
+      </li>`;
+  }).join('');
+
+  return hero(d, state.day) + progressBanner(d, sc, pg) + `<ol class="relative">${rows}</ol>` + tipsBlock(d);
+}
+
+/* ---------- 交通 ---------- */
+function stepsList(steps) {
+  return `<ol class="space-y-2">${steps.map(([k, text, dur]) => `
+    <li class="flex items-start gap-2">
+      <div class="shrink-0">${stepChip(k)}</div>
+      <p class="flex-1 text-[14px] leading-snug pt-px">${text}</p>
+      ${dur ? `<span class="text-[12px] text-neutral-400 whitespace-nowrap tabular pt-0.5">${dur}</span>` : ''}
+    </li>`).join('')}</ol>`;
+}
+
+function navButtons(o, dest, mode) {
+  if (!mode) return '';
+  return `
+    <div class="grid grid-cols-[1fr_auto] gap-2 mt-4">
+      <a href="${mapsUrl(dest, mode, o)}" target="_blank" rel="noopener"
+        class="tap flex items-center justify-center gap-1.5 rounded-xl bg-[#007AFF] text-white text-[15px] font-semibold py-3">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M21.7 2.3a1 1 0 0 0-1.05-.23l-18 7a1 1 0 0 0 .08 1.89l7.6 2.24 2.24 7.6a1 1 0 0 0 .93.72h.03a1 1 0 0 0 .93-.64l7-18a1 1 0 0 0-.2-1.08Z"/></svg>
+        Google Maps 導航
+      </a>
+      <a href="${mapsUrl(dest, mode)}" target="_blank" rel="noopener"
+        class="tap flex items-center justify-center rounded-xl bg-[#007AFF]/10 dark:bg-[#0A84FF]/20 text-[#007AFF] dark:text-[#0A84FF] text-[13px] font-semibold px-3.5 py-3">
+        從目前位置
+      </a>
+    </div>`;
+}
+
+function renderRoute() {
+  const d = DAYS[state.day];
+  const cards = d.legs.map((leg, i) => {
+    const alt = leg.alt ? `
+      <details class="mt-3 rounded-xl bg-neutral-100 dark:bg-neutral-800/80 group">
+        <summary class="list-none cursor-pointer flex items-center justify-between px-3 py-2.5 text-[14px] font-semibold">
+          <span>替代方案：${leg.alt.label} <span class="font-normal text-neutral-500 dark:text-neutral-400">· ${leg.alt.dur}</span></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-neutral-400 transition-transform group-open:rotate-90"><path d="m9 6 6 6-6 6"/></svg>
+        </summary>
+        <div class="px-3 pb-3">${stepsList(leg.alt.steps)}${navButtons(leg.o, leg.d, leg.alt.mode)}</div>
+      </details>` : '';
+
+    return `
+      <article id="leg-${leg.id}" class="fade-in rounded-2xl bg-white dark:bg-neutral-900 p-4 shadow-sm mb-3" style="animation-delay:${i * 35}ms">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 text-[16px] font-semibold">
+              <span class="w-2.5 h-2.5 rounded-full border-2 shrink-0" style="border-color:${d.color[0]}"></span>
+              <span class="truncate">${leg.from}</span>
+            </div>
+            <div class="ml-[4px] my-0.5 h-3 border-l-2 border-dotted border-neutral-300 dark:border-neutral-600"></div>
+            <div class="flex items-center gap-2 text-[16px] font-semibold">
+              <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${d.color[0]}"></span>
+              <span class="truncate">${leg.to}</span>
+            </div>
+          </div>
+          <span class="shrink-0 rounded-full bg-neutral-100 dark:bg-neutral-800 text-[12.5px] font-semibold px-2.5 py-1 tabular">${leg.dur}</span>
+        </div>
+        <div class="h-px bg-neutral-200/80 dark:bg-neutral-800 my-3.5"></div>
+        ${stepsList(leg.steps)}
+        ${leg.warn ? `<p class="mt-3 text-[13px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-400/10 rounded-lg px-2.5 py-2">⚠️ ${leg.warn}</p>` : ''}
+        ${navButtons(leg.o, leg.d, leg.mode)}
+        ${alt}
+      </article>`;
+  }).join('');
+
+  const legend = `
+    <p class="text-[12.5px] text-neutral-500 dark:text-neutral-400 mb-3 px-1 leading-relaxed">
+      「Google Maps 導航」用行程中的起點規劃；「從目前位置」以你現在的 GPS 位置出發。全程刷 Suica 即可。
+    </p>`;
+  return hero(d, state.day) + legend + cards;
+}
+
+/* ---------- 主渲染 ---------- */
+function render(opts = {}) {
+  $('#pageTitle').textContent = state.tab === 'plan' ? '行程' : '交通';
+  document.querySelectorAll('.tab-btn').forEach((b) => {
+    const on = b.dataset.tab === state.tab;
+    b.classList.toggle('text-rose-600', on);
+    b.classList.toggle('dark:text-rose-400', on);
+    b.classList.toggle('text-neutral-400', !on);
+  });
+  if (!opts.quiet) renderPills();
+  $('#view').classList.toggle('quiet', !!opts.quiet);
+  $('#view').innerHTML = state.tab === 'plan' ? renderPlan() : renderRoute();
+  if (!opts.keepScroll) window.scrollTo({ top: 0 });
+  store.set('day', state.day);
+  store.set('tab', state.tab);
+}
+
+function setDay(i) {
+  if (i < 0 || i >= DAYS.length || i === state.day) return;
+  state.day = i;
+  render();
+}
+
+/* =========================================================
+   互動
+   ========================================================= */
+document.addEventListener('click', (e) => {
+  const pill = e.target.closest('[data-day]');
+  if (pill) return setDay(+pill.dataset.day);
+
+  const tab = e.target.closest('[data-tab]');
+  if (tab) { if (tab.dataset.tab !== state.tab) { state.tab = tab.dataset.tab; render(); } else window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+
+  const here = e.target.closest('[data-here]');
+  if (here) {
+    const key = 'here-' + DAYS[state.day].date;
+    if (store.get(key) === here.dataset.here) store.del(key); else store.set(key, here.dataset.here);
+    render({ keepScroll: true, quiet: true });
+    return;
+  }
+  if (e.target.closest('[data-clear-here]')) {
+    store.del('here-' + DAYS[state.day].date);
+    render({ keepScroll: true, quiet: true });
+    return;
+  }
+
+  const go = e.target.closest('[data-goleg]');
+  if (go) {
+    state.tab = 'route';
+    render();
+    const el = document.getElementById('leg-' + go.dataset.goleg);
+    if (el) {
+      const headerH = document.querySelector('header').offsetHeight;
+      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - headerH - 12, behavior: 'smooth' });
+      el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    }
+  }
+});
+
+/* 左右滑動切換天數 */
+let sx = 0, sy = 0, st = 0;
+const main = $('#view');
+main.addEventListener('touchstart', (e) => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); }, { passive: true });
+main.addEventListener('touchend', (e) => {
+  const t = e.changedTouches[0];
+  const dx = t.clientX - sx, dy = t.clientY - sy;
+  if (Date.now() - st < 600 && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) setDay(state.day + (dx < 0 ? 1 : -1));
+}, { passive: true });
+
+/* 回到前景時更新「現在」標示 */
+function refreshClock() {
+  tokyo = tokyoNow();
+  todayIdx = DAYS.findIndex((d) => d.date === tokyo.date);
+  renderStatus();
+  render({ keepScroll: true, quiet: true });
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshClock(); });
+setInterval(() => { if (!document.hidden && !SIM && state.tab === 'plan' && state.day === todayIdx) refreshClock(); }, 60000);
+
+/* 主畫面圖示（iOS 需要 PNG，這裡用 canvas 產生） */
+(function makeIcon() {
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 180;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 180, 180);
+    g.addColorStop(0, '#F43F5E'); g.addColorStop(1, '#FB923C');
+    x.fillStyle = g; x.fillRect(0, 0, 180, 180);
+    x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.font = 'bold 64px -apple-system, "PingFang TC", sans-serif';
+    x.fillText('東京', 90, 78);
+    x.font = '600 26px -apple-system, sans-serif';
+    x.globalAlpha = .9; x.fillText('10/12 – 10/17', 90, 130);
+    $('#touchIcon').href = c.toDataURL('image/png');
+  } catch (e) {}
+})();
+
+renderStatus();
+render();
+</script>
+</body>
+</html>
