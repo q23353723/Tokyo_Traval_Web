@@ -163,6 +163,7 @@ const LINES = {
   yurikamome: { name: '百合海鷗號',     icon: '🚝', bg: '#1A8FC9', fg: '#fff' },
   yurakucho:  { name: '有樂町線',       icon: '🚇', bg: '#C1A470', fg: '#fff' },
   oedo:       { name: '都營大江戶線',   icon: '🚇', bg: '#B6007A', fg: '#fff' },
+  fukutoshin: { name: '副都心線',       icon: '🚇', bg: '#9C5E31', fg: '#fff' },
   bus:        { name: '巴士',           icon: '🚌', bg: '#0F766E', fg: '#fff' },
   walk:       { name: '步行',           icon: '🚶', bg: '#8E8E93', fg: '#fff' },
   taxi:       { name: '計程車',         icon: '🚕', bg: '#EAB308', fg: '#1a1a1a' },
@@ -190,11 +191,14 @@ const P = {
   ueno:      '上野駅',
   teamlab:   'チームラボプラネッツ TOKYO',
   tsukiji:   '築地場外市場',
+  toyosu:    '豊洲市場',
+  shijomae:  '市場前駅',
   tower:     '東京タワー',
   ginza:     '銀座駅',
   shinjuku:  '新宿駅',
   halc:      '叙々苑 新宿小田急ハルク店',
   harajuku:  '原宿駅',
+  hoka:      'HOKA Harajuku',
   salomon:   'Salomon Store Tokyo Shibuya',
   parco:     '渋谷PARCO',
   s109:      'SHIBUYA109渋谷店',
@@ -217,12 +221,19 @@ const P = {
               ticket:true 列入票券分頁（有 tags 或搭飛機的行程會自動列入）
               remind:true 匯出行事曆時也加入（票券分頁的行程會自動加入）；alarm = 提前幾分鐘提醒（預設 30）
    day 欄位：bring = 當天要帶的東西
+   雨天備案（每天各自用開關切換，存本機 rain-日期）：
+     day.rain  = { level 受影響程度 low | mid | high, sum 主要調整, bring 加帶的東西 }
+     item.rain = 要覆蓋的欄位（title / icon / note / t / leg…）＋ tip 雨天說明；只有 tip 表示照常
+     leg.rain  = 要覆蓋的欄位（from / to / o / d / steps / alt…）
+     shop.rain = 要覆蓋的欄位（flag / note）；shop.rainOnly = 只在雨天出現；shops.rainHint = 雨天的提示
+     ⚠️ 雨天不增減 item，只覆蓋欄位，「我在這」、店家勾選才不會錯位
    ========================================================= */
 const DAYS = [
   {
     date: '2026-10-12', md: '10/12', wd: '一', title: '抵達東京', sub: '日本體育節連假最後一天',
     color: ['#F43F5E', '#FB923C'],
     bring: ['護照', '登機證', 'Visit Japan Web QR Code', 'Skyliner 車票', '日圓現金', '行動電源'],
+    rain: { level: 'low', sum: '晚餐改用 App 叫計程車', bring: ['摺疊傘'] },
     items: [
       { t: '08:00', icon: '🚄', title: '台中烏日 → 高鐵桃園站', tw: true, ticket: true, leg: 'd1a' },
       { t: '~09:00', icon: '🚆', title: '高鐵桃園站 → 機場第二航廈', note: '機場捷運 A18 → A13', tw: true, leg: 'd1b' },
@@ -231,7 +242,8 @@ const DAYS = [
       { t: '~17:40', icon: '🚆', title: '成田機場 → 日暮里', ticket: true, leg: 'd1d' },
       { t: '~18:30', icon: '🚃', title: '日暮里 → 鶯谷', leg: 'd1e' },
       { t: '~18:45', icon: '🏨', title: '飯店 Check-in、放行李', note: 'CANDEO HOTELS 上野公園', leg: 'd1f' },
-      { t: '19:35', icon: '🚕', title: '出發去晚餐', note: '計程車約 10 分（約 ¥1,000–1,300）；步行約 25 分', leg: 'd1g' },
+      { t: '19:35', icon: '🚕', title: '出發去晚餐', note: '計程車約 10 分（約 ¥1,000–1,300）；步行約 25 分', leg: 'd1g',
+        rain: { note: '計程車約 10 分（約 ¥1,000–1,300）', tip: '雨天路邊叫車排隊久：用 GO 或 Uber App 叫車，19:25 先叫' } },
       { t: '20:00', icon: '🍖', title: '牛たんの檸檬 淺草店', note: '淺草 2-9-13，TX 淺草站 A1 旁 · 21:30 打烊', tags: ['已預約 20:00'] },
       { t: '~21:30', end: '22:00', icon: '🌙', title: '回飯店', leg: 'd1h' },
     ],
@@ -265,13 +277,18 @@ const DAYS = [
     date: '2026-10-13', md: '10/13', wd: '二', title: '淺草・晴空塔・秋葉原', sub: '晚上逛阿美橫丁',
     color: ['#F59E0B', '#EF4444'],
     bring: ['護照（Bic Camera 退稅）', '晴空塔預約 QR', '行動電源', '好走的鞋'],
+    rain: { level: 'mid', sum: '淺草寺縮短、改搭電車到晴空塔；阿美橫丁改逛上野站周邊室內', bring: ['摺疊傘', '防水或快乾的鞋'] },
     items: [
-      { t: '08:30', icon: '⛩️', title: '淺草寺・雷門・仲見世通', note: '早去人少，店家約 9:30–10:00 開', leg: 'd2a' },
-      { t: '10:45', icon: '🚶', title: '走到晴空塔', note: '推薦走 SUMIDA RIVER WALK，順路拍晴空塔', leg: 'd2b' },
-      { t: '11:30', icon: '🗼', title: '晴空塔展望台', note: '約 1–1.5 小時', tags: ['已預約 11:30'] },
+      { t: '08:30', icon: '⛩️', title: '淺草寺・雷門・仲見世通', note: '早去人少，店家約 9:30–10:00 開', leg: 'd2a',
+        rain: { tip: '照常（戶外，帶傘即可）。雨大可縮短到 1 小時，雷門拍照＋參拜就好；仲見世通沒有屋頂' } },
+      { t: '10:45', icon: '🚶', title: '走到晴空塔', note: '推薦走 SUMIDA RIVER WALK，順路拍晴空塔', leg: 'd2b',
+        rain: { icon: '🚆', title: '搭電車到晴空塔', note: '東武晴空塔線 淺草 → 東京晴空塔站，1 站 3 分', tip: '不要走 River Walk 步道橋' } },
+      { t: '11:30', icon: '🗼', title: '晴空塔展望台', note: '約 1–1.5 小時', tags: ['已預約 11:30'],
+        rain: { tip: '照常入場。雨天能見度差，出發前看官網的「展望台能見度」；票是否能改期以官網為準' } },
       { t: '13:00', icon: '🍱', title: '午餐：東京 Solamachi 美食街', note: '6F、7F 餐廳區' },
       { t: '14:00', end: '15:00', icon: '🛍️', title: '逛 Solamachi', note: '15:00 離開 · 東區 3F 有 Stussy' },
       { t: '15:30', end: '18:30', icon: '🎮', title: '秋葉原', note: '電器、動漫、公仔、耳機 · 走電氣街口', leg: 'd2c',
+        rain: { tip: '照常，店家都在室內，只有店與店之間走中央通各 3–5 分' },
         shops: {
           hint: '由南往北，沿中央通一路逛，最後一家往北走就到阿美橫丁',
           list: [
@@ -286,8 +303,11 @@ const DAYS = [
             { k: '+3', extra: true, name: 'まんだらけ Complex', addr: '中央通後巷', stay: '30 分', desc: '二手動漫、公仔', q: 'まんだらけ コンプレックス' },
           ],
         } },
-      { t: '18:45', icon: '🏮', title: '上野阿美橫丁 晚餐、逛街', note: '店家多約 20:00 收，居酒屋較晚', leg: 'd2d' },
-      { t: '20:30', end: '21:00', icon: '🏨', title: '回飯店', leg: 'd2e' },
+      { t: '18:45', icon: '🏮', title: '上野阿美橫丁 晚餐、逛街', note: '店家多約 20:00 收，居酒屋較晚', leg: 'd2d',
+        rain: { icon: '🏬', title: '上野站周邊室內 晚餐、逛街', note: 'Yamashiroya 玩具店（6 層）、上野丸井、atré 上野\n晚餐改在上野站周邊室內餐廳',
+          tip: '阿美橫丁多半是半露天攤商，雨大就改逛室內；雨小還是可以去' } },
+      { t: '20:30', end: '21:00', icon: '🏨', title: '回飯店', leg: 'd2e',
+        rain: { tip: '搭 JR 上野 → 鶯谷 1 站，不要走路' } },
     ],
     tips: [
       '晴空塔是 11:30 入場，午餐改到看完後在 Solamachi 吃（叙叙苑已訂在 Day 5，不要連吃兩次）。',
@@ -300,12 +320,17 @@ const DAYS = [
         alt: { label: '計程車（最省事）', mode: 'driving', dur: '約 10 分', steps: [['taxi', '飯店 → 淺草寺', '10 分']] } },
       { id: 'd2b', from: '淺草寺', to: '晴空塔', o: P.sensoji, d: P.skytree, mode: 'walking', dur: '約 20 分',
         steps: [['walk', 'SUMIDA RIVER WALK 過隅田川（推薦）', '20 分']],
-        alt: { label: '搭電車', mode: 'transit', dur: '3 分', steps: [['tobu', '淺草 → 東京晴空塔站，1 站', '3 分']] } },
+        alt: { label: '搭電車', mode: 'transit', dur: '3 分', steps: [['tobu', '淺草 → 東京晴空塔站，1 站', '3 分']] },
+        rain: { mode: 'transit', dur: '3 分', steps: [['tobu', '淺草 → 東京晴空塔站，1 站', '3 分']],
+          alt: { label: '步行（雨小時）', mode: 'walking', dur: '約 20 分', steps: [['walk', 'SUMIDA RIVER WALK 過隅田川', '20 分']] } } },
       { id: 'd2c', from: '晴空塔', to: '秋葉原', o: P.skytree, d: P.akiba, mode: 'transit', dur: '約 25 分',
         steps: [['asakusa', '押上 → 淺草橋', ''], ['sobu', '淺草橋 → 秋葉原，1 站', ''], ['walk', '走電氣街口出站', '']] },
       { id: 'd2d', from: 'e☆イヤホン', to: '阿美橫丁', o: P.eearphone, d: P.ameyoko, mode: 'walking', dur: '約 12 分',
         steps: [['walk', '沿中央通往北走', '12 分']],
-        alt: { label: '搭電車', mode: 'transit', dur: '約 5 分', steps: [['ginza', '末廣町 → 上野廣小路，1 站', '2 分']] } },
+        alt: { label: '搭電車', mode: 'transit', dur: '約 5 分', steps: [['ginza', '末廣町 → 上野廣小路，1 站', '2 分']] },
+        rain: { to: '上野站', d: P.ueno, mode: 'transit', dur: '約 8 分',
+          steps: [['walk', 'e☆イヤホン → 末廣町站 1 號出口', '1 分'], ['ginza', '末廣町 → 上野，2 站', '3 分']],
+          alt: { label: '步行', mode: 'walking', dur: '約 15 分', steps: [['walk', '沿中央通往北走', '15 分']] } } },
       { id: 'd2e', from: '阿美橫丁', to: '飯店', o: P.ameyoko, d: P.hotel, mode: 'transit', dur: '約 10 分',
         steps: [['yamanote', '上野 → 鶯谷，1 站', '2 分'], ['walk', '鶯谷站 → 飯店', '3 分']],
         alt: { label: '步行', mode: 'walking', dur: '約 20 分', steps: [['walk', '穿過上野公園周邊', '20 分']] } },
@@ -315,10 +340,14 @@ const DAYS = [
     date: '2026-10-14', md: '10/14', wd: '三', title: '東京迪士尼樂園', sub: '20:50 巴士回上野 · 萬聖節活動期間',
     color: ['#8B5CF6', '#EC4899'],
     bring: ['迪士尼門票', '回程巴士車票', '行動電源（App 很耗電）', '薄外套（晚上變涼）'],
+    rain: { level: 'mid', sum: '迪士尼照常，帶雨衣、優先玩室內設施；遊行可能取消', bring: ['雨衣', '手機防水袋'] },
     items: [
-      { t: '07:30', icon: '🏨', title: '飯店出發', note: '總計約 50–60 分', leg: 'd3a' },
-      { t: '08:30', icon: '🏰', title: '抵達樂園排隊入園', note: '先下載官方 App，入園後買 Premier Access / 抽表演', tags: ['指定日門票'] },
-      { t: '20:25', icon: '🚶', title: '往樂園出口走', remind: true, alarm: 10, note: '晚上出園人潮多，抓 15 分\n先用 App 看夜間遊行和煙火時間，衝到就提早離開' },
+      { t: '07:30', icon: '🏨', title: '飯店出發', note: '總計約 50–60 分', leg: 'd3a',
+        rain: { tip: '出發前先在便利商店 / Daiso 買雨衣（園內較貴）' } },
+      { t: '08:30', icon: '🏰', title: '抵達樂園排隊入園', note: '先下載官方 App，入園後買 Premier Access / 抽表演', tags: ['指定日門票'],
+        rain: { tip: '樂園照常營業、不退票。雨天排隊人潮較少，優先玩室內設施：小熊維尼獵蜜記、美女與野獸、怪獸電力公司、加勒比海盜、幽靈公館、星際旅行。大雨時遊行 / 戶外表演可能取消或縮短，用 App 確認' } },
+      { t: '20:25', icon: '🚶', title: '往樂園出口走', remind: true, alarm: 10, note: '晚上出園人潮多，抓 15 分\n先用 App 看夜間遊行和煙火時間，衝到就提早離開',
+        rain: { t: '20:20', tip: '雨天出園人潮更集中，20:20 就往出口走' } },
       { t: '20:40', end: '21:45', icon: '🚌', title: '樂園巴士站搭車 → 上野', note: '20:50 發車，20:40 前到', tags: ['已預約 20:50'], leg: 'd3b' },
       { t: '~21:45', end: '22:05', icon: '🏨', title: '抵達上野 → 回飯店', leg: 'd3c' },
     ],
@@ -342,15 +371,24 @@ const DAYS = [
     date: '2026-10-15', md: '10/15', wd: '四', title: 'teamLab・築地・東京鐵塔・銀座', sub: '大江戶線、日比谷線一路串起來',
     color: ['#06B6D4', '#6366F1'],
     bring: ['teamLab 預約 QR', '可捲到膝蓋的褲子（不穿裙子）', '小毛巾', '護照（銀座退稅）'],
+    rain: { level: 'high', sum: '築地改吃豐洲市場；東京鐵塔視能見度決定，備案是麻布台 Hills', bring: ['摺疊傘'] },
     items: [
       { t: '09:05', icon: '🏨', title: '飯店出發', note: '總計約 50 分', leg: 'd4a' },
-      { t: '10:00', icon: '🎨', title: 'teamLab Planets', note: '約 1.5–2 小時\n會踩水到膝蓋，穿可捲起的褲子，不要穿裙子', tags: ['已預約 10:00'] },
-      { t: '11:50', icon: '🚕', title: '前往築地', note: '建議計程車（約 ¥2,000–2,500，2 人分攤划算）', leg: 'd4b' },
-      { t: '12:15', end: '13:15', icon: '🍣', title: '築地場外市場 午餐', note: '海鮮丼、玉子燒、生蠔\n⚠️ 很多店 14:00 前就收，不要再晚到' },
-      { t: '13:15', icon: '🚇', title: '前往東京鐵塔', leg: 'd4c' },
-      { t: '13:45', end: '16:00', icon: '🗼', title: '東京鐵塔＋增上寺', note: 'Main Deck / Top Deck\n增上寺拍「寺廟＋鐵塔」很經典，步行 3 分' },
+      { t: '10:00', icon: '🎨', title: 'teamLab Planets', note: '約 1.5–2 小時\n會踩水到膝蓋，穿可捲起的褲子，不要穿裙子', tags: ['已預約 10:00'],
+        rain: { tip: '照常（室內）' } },
+      { t: '11:50', icon: '🚕', title: '前往築地', note: '建議計程車（約 ¥2,000–2,500，2 人分攤划算）', leg: 'd4b',
+        rain: { icon: '🚝', title: '前往豐洲市場', note: '百合海鷗號 新豐洲 → 市場前，1 站\n站內有連通道，幾乎不用撐傘' } },
+      { t: '12:15', end: '13:15', icon: '🍣', title: '築地場外市場 午餐', note: '海鮮丼、玉子燒、生蠔\n⚠️ 很多店 14:00 前就收，不要再晚到',
+        rain: { title: '豐洲市場／豐洲千客萬來 午餐', note: '海鮮丼、壽司\n比去築地省下約 30 分交通，可以吃得從容一點',
+          tip: '築地場外市場多為窄巷攤商、只有部分有遮雨，雨大不建議' } },
+      { t: '13:15', icon: '🚇', title: '前往東京鐵塔', leg: 'd4c',
+        rain: { note: '從豐洲出發約 35 分；或計程車約 20 分' } },
+      { t: '13:45', end: '16:00', icon: '🗼', title: '東京鐵塔＋增上寺', note: 'Main Deck / Top Deck\n增上寺拍「寺廟＋鐵塔」很經典，步行 3 分',
+        rain: { title: '東京鐵塔（視能見度）', note: '到現場先看能見度再決定上不上 Top Deck（票不用先買）；跳過增上寺',
+          tip: '完全看不到的話，改去旁邊的麻布台 Hills（神谷町站直通，室內逛街、咖啡），或提早到銀座' } },
       { t: '16:00', icon: '🚇', title: '前往銀座', leg: 'd4d' },
       { t: '16:30', icon: '🛍️', title: '銀座逛街＋晚餐', note: '店家多營業到 20:00–21:00',
+        rain: { tip: '照常。銀座站地下通道直通三越、松屋、GINZA SIX 附近，雨天移動方便' },
         shops: {
           hint: '沿中央通由南往北逛；營業時間為一般時段，出發前再到官網確認',
           list: [
@@ -376,9 +414,15 @@ const DAYS = [
           steps: [['hibiya', '入谷 → 銀座', '17 分'], ['yurakucho', '銀座一丁目 → 豐洲', '6 分'], ['yurikamome', '豐洲 → 新豐洲，1 站', '2 分']] } },
       { id: 'd4b', from: 'teamLab', to: '築地場外市場', o: P.teamlab, d: P.tsukiji, mode: 'driving', dur: '約 15 分',
         steps: [['taxi', '計程車約 ¥2,000–2,500', '15 分']],
-        alt: { label: '搭電車', mode: 'transit', dur: '約 30 分', steps: [['yurikamome', '新豐洲 → 汐留', '20 分'], ['walk', '汐留 → 築地', '10 分']] } },
+        alt: { label: '搭電車', mode: 'transit', dur: '約 30 分', steps: [['yurikamome', '新豐洲 → 汐留', '20 分'], ['walk', '汐留 → 築地', '10 分']] },
+        rain: { to: '豐洲市場', d: P.toyosu, mode: 'transit', dur: '約 10 分',
+          steps: [['walk', 'teamLab → 新豐洲站', '3 分'], ['yurikamome', '新豐洲 → 市場前，1 站', '2 分'], ['walk', '市場前站連通道直通市場', '3 分']],
+          alt: null } },
       { id: 'd4c', from: '築地場外市場', to: '東京鐵塔', o: P.tsukiji, d: P.tower, mode: 'transit', dur: '約 15 分',
-        steps: [['oedo', '築地市場 → 赤羽橋，3 站', '8 分'], ['walk', '赤羽橋站 → 東京鐵塔', '5 分']] },
+        steps: [['oedo', '築地市場 → 赤羽橋，3 站', '8 分'], ['walk', '赤羽橋站 → 東京鐵塔', '5 分']],
+        rain: { from: '豐洲市場', o: P.shijomae, dur: '約 35 分',
+          steps: [['yurikamome', '市場前 → 汐留', '20 分'], ['oedo', '汐留 → 赤羽橋', '5 分'], ['walk', '赤羽橋站 → 東京鐵塔', '5 分']],
+          alt: { label: '計程車', mode: 'driving', dur: '約 20 分', steps: [['taxi', '豐洲市場 → 東京鐵塔', '20 分']] } } },
       { id: 'd4d', from: '東京鐵塔', to: '銀座', o: P.tower, d: P.ginza, mode: 'transit', dur: '約 20 分',
         steps: [['walk', '東京鐵塔 → 神谷町站', '10 分'], ['hibiya', '神谷町 → 銀座', '8 分']] },
       { id: 'd4e', from: '銀座', to: '飯店', o: P.ginza, d: P.hotel, mode: 'transit', dur: '約 25 分',
@@ -389,9 +433,11 @@ const DAYS = [
     date: '2026-10-16', md: '10/16', wd: '五', title: '新宿・原宿・澀谷', sub: '購物日 · 記得帶護照退稅',
     color: ['#10B981', '#0EA5E9'],
     bring: ['護照（退稅）', '叙叙苑・SHIBUYA SKY 預約', '摺疊購物袋', '行動電源'],
+    rain: { level: 'high', sum: '原宿改成精簡路線、改搭地鐵到澀谷；SHIBUYA SKY 頂樓可能關閉', bring: ['摺疊傘', '大塑膠袋（鞋盒、紙袋防潮）'] },
     items: [
       { t: '09:30', icon: '🏨', title: '飯店出發', leg: 'd5a' },
       { t: '10:00', end: '11:20', icon: '🛍️', title: '新宿逛街', note: '百貨多 10:00–11:00 才開',
+        rain: { tip: '照常（百貨室內，新宿站地下街可直通）' },
         shops: {
           hint: '10:00 只有伊勢丹開門，其他多 11:00 才開；11:20 要往西口叙叙苑走，時間大概只夠再逛一家',
           list: [
@@ -407,8 +453,11 @@ const DAYS = [
       { t: '11:30', icon: '🥩', title: '叙叙苑 新宿小田急 HALC 店 午餐', note: '新宿站西口', tags: ['已預約 11:30'] },
       { t: '12:45', icon: '🚃', title: '前往原宿', leg: 'd5b' },
       { t: '13:00', end: '17:00', icon: '👟', title: '原宿逛街', note: '由北往南一路逛到澀谷，每家約 25–30 分',
+        rain: { title: '原宿逛街（雨天精簡路線）', note: 'ASICS → 裏原宿（AAPE / Stussy / Supreme）→ HOKA → Laforet\n逛完從明治神宮前站搭副都心線到澀谷',
+          tip: '略過 Margiela、HUMAN MADE TOKYO、Salomon（雨小時再逛）；HUMAN MADE 可改逛室內的 Laforet 原宿' },
         shops: {
           hint: '依路線順序，原宿 → 澀谷；逛不完時先跳過 ⑤ Margiela。Stussy 12:00 才開，排在 AAPE 後面剛好',
+          rainHint: '雨天精簡路線：裏原宿三家相距 1–3 分；HOKA、Laforet 都在神宮前交叉口，旁邊就是明治神宮前站',
           list: [
             { k: '①', name: 'ASICS Flagship Harajuku', addr: '神宮前 1-5-8（竹下通入口，原宿站旁）', hours: '11:00–19:00', stay: '25–30 分', at: '13:00',
               note: '出站第一家', q: 'アシックス 原宿 フラッグシップ' },
@@ -417,16 +466,23 @@ const DAYS = [
               note: '和 AAPE 幾乎隔壁', q: 'Stussy Harajuku Chapter' },
             { k: '④', name: 'Supreme 原宿店', addr: '神宮前 4-32-7 2F（裏原宿）', hours: '11:00–20:00', stay: '25–30 分', at: '14:10', q: 'Supreme 原宿' },
             { k: '⑤', name: 'Maison Margiela 表參道', addr: '神宮前 5-10-1 GYRE 1F', hours: '11:00–20:00', stay: '30–40 分', at: '14:40', flag: 'maybe',
-              note: '往表參道方向多走約 5 分；不買精品可刪', q: 'Maison Margiela 表参道 GYRE' },
+              note: '往表參道方向多走約 5 分；不買精品可刪', q: 'Maison Margiela 表参道 GYRE',
+              rain: { flag: 'drop', note: '雨天略過：往表參道要多走一段路，雨小時再逛' } },
             { k: '⑥', name: 'HOKA Harajuku', addr: '神宮前 1-11-11（神宮前交叉口）', hours: '11:00–20:00', stay: '25–30 分', at: '15:20', q: 'HOKA Harajuku' },
+            { k: 'L', rainOnly: true, name: 'Laforet 原宿', addr: '神宮前 1-11-6（神宮前交叉口，HOKA 旁）', hours: '11:00–20:00', stay: '30–40 分',
+              desc: '室內商場，雨天代替 HUMAN MADE', q: 'ラフォーレ原宿' },
             { k: '⑦', name: 'HUMAN MADE TOKYO', addr: '神宮前 6-25-10（明治通）', hours: '平日 11:00–19:00', stay: '30–40 分', at: '15:50',
-              desc: '2026/9/26 新開旗艦店', q: 'HUMAN MADE 渋谷区神宮前6-25-10' },
-            { k: '⑧', name: 'Salomon Store 東京澀谷', addr: '神宮前 6-16-13（明治通，往澀谷方向）', hours: '11:00–20:00', stay: '25–30 分', at: '16:30', q: 'Salomon Store Tokyo Shibuya' },
+              desc: '2026/9/26 新開旗艦店', q: 'HUMAN MADE 渋谷区神宮前6-25-10',
+              rain: { flag: 'drop', note: '雨天略過：要沿明治通走，雨小時再逛；可改逛 Laforet 原宿' } },
+            { k: '⑧', name: 'Salomon Store 東京澀谷', addr: '神宮前 6-16-13（明治通，往澀谷方向）', hours: '11:00–20:00', stay: '25–30 分', at: '16:30', q: 'Salomon Store Tokyo Shibuya',
+              rain: { flag: 'drop', note: '雨天略過：要沿明治通走，雨小時再逛' } },
             { k: '✖', name: '西太后', addr: '中野區東中野 1-58-8（JR 東中野站旁）', stay: '—', flag: 'drop',
               note: '不順路：查到的是東中野的中華料理店（只收現金），和其他店都不在同一區，建議刪除或確認是否指別家', q: '西太后 東中野' },
           ],
         } },
       { t: '17:00', end: '18:00', icon: '🛍️', title: '澀谷：MIZUNO・SHIBUYA109', note: '從 Salomon 沿明治通走到澀谷約 15 分', leg: 'd5c',
+        rain: { note: '從明治神宮前站搭副都心線 1 站到澀谷，不走明治通',
+          tip: '照常（PARCO、109 都是室內）。多出來的時間可以逛 Shibuya Scramble Square、Hikarie、MIYASHITA PARK' },
         shops: {
           list: [
             { k: 'C', name: 'MIZUNO SHOP', addr: '澀谷 PARCO 5F', hours: '11:00–21:00', stay: '20–30 分', at: '17:00', q: 'ミズノ 渋谷パルコ' },
@@ -435,8 +491,10 @@ const DAYS = [
           ],
         } },
       { t: '18:00', end: '18:45', icon: '🍜', title: '晚餐：澀谷 Scramble Square', note: '建議在 12–13F 餐廳樓層，吃完直接上樓', leg: 'd5d' },
-      { t: '19:00', end: '20:00', icon: '🌃', title: 'SHIBUYA SKY 夜景', note: '約 1 小時 · 18:50 前到 Scramble Square 14F 入口\n日落約 17:10，看到的是夜景', tags: ['已預約 19:00'] },
+      { t: '19:00', end: '20:00', icon: '🌃', title: 'SHIBUYA SKY 夜景', note: '約 1 小時 · 18:50 前到 Scramble Square 14F 入口\n日落約 17:10，看到的是夜景', tags: ['已預約 19:00'],
+        rain: { tip: '雨天或強風時頂樓 SKY STAGE 會關閉，只能進 46F 室內展望區；入場前看官網公告，退改規則以官網為準' } },
       { t: '20:00', end: '21:00', icon: '🚶', title: '自由時間', note: '十字路口夜景、沒逛完的店',
+        rain: { note: '改逛室內：澀谷 PARCO、Scramble Square 樓下店家', tip: '十字路口可以從 Scramble Square / MAGNET 室內往下看' },
         shops: {
           list: [
             { k: '+1', extra: true, name: 'Supreme 澀谷店', addr: '神南 1-18-2', hours: '11:00–20:00', stay: '15–20 分',
@@ -459,7 +517,9 @@ const DAYS = [
       { id: 'd5b', from: '新宿', to: '原宿', o: P.halc, d: P.harajuku, mode: 'transit', dur: '約 15 分',
         steps: [['walk', '叙叙苑 → 新宿站', '5 分'], ['yamanote', '新宿 → 原宿', '4 分'], ['walk', '原宿站 → ASICS（竹下通入口）', '2 分']] },
       { id: 'd5c', from: 'Salomon', to: '澀谷 PARCO', o: P.salomon, d: P.parco, mode: 'walking', dur: '約 15 分',
-        steps: [['walk', '沿明治通往南走到澀谷', '15 分']] },
+        steps: [['walk', '沿明治通往南走到澀谷', '15 分']],
+        rain: { from: 'HOKA（神宮前交叉口）', o: P.hoka, mode: 'transit', dur: '約 15 分',
+          steps: [['walk', 'HOKA → 明治神宮前站', '2 分'], ['fukutoshin', '明治神宮前 → 澀谷，1 站', '2 分'], ['walk', '澀谷站 → PARCO', '8 分']] } },
       { id: 'd5d', from: 'SHIBUYA109', to: 'Scramble Square', o: P.s109, d: P.sky, mode: 'walking', dur: '約 5 分',
         steps: [['walk', '過十字路口到澀谷 Scramble Square', '5 分']] },
       { id: 'd5e', from: '澀谷', to: '飯店', o: P.shibuyaSt, d: P.hotel, mode: 'transit', dur: '約 40 分',
@@ -470,10 +530,13 @@ const DAYS = [
     date: '2026-10-17', md: '10/17', wd: '六', title: '上野公園・返台', sub: '最晚 10:00 離開飯店',
     color: ['#64748B', '#0EA5E9'],
     bring: ['護照', '回程 Skyliner 車票', '登機證', '免稅品密封袋（出境前不要拆）'],
+    rain: { level: 'low', sum: '不去上野公園，提早到機場', bring: ['摺疊傘'] },
     items: [
-      { t: '08:00', icon: '🌳', title: '早餐，上野公園・不忍池散步', note: '飯店就在旁邊', leg: 'd6a' },
+      { t: '08:00', icon: '🌳', title: '早餐，上野公園・不忍池散步', note: '飯店就在旁邊', leg: 'd6a',
+        rain: { icon: '🍳', title: '飯店慢慢吃早餐', note: '不去上野公園\n也可以提早到機場逛（第 2 航廈出境前、管制區內都有伴手禮店）', leg: null } },
       { t: '09:30', icon: '🧳', title: '飯店 Check-out', remind: true },
-      { t: '~10:00', icon: '🚆', title: '前往成田第 2 航廈', note: '在「空港第2ビル」站下車，不要坐到終點', tags: ['車票還沒買'], leg: 'd6b' },
+      { t: '~10:00', icon: '🚆', title: '前往成田第 2 航廈', note: '在「空港第2ビル」站下車，不要坐到終點', tags: ['已購票'], leg: 'd6b',
+        rain: { tip: '照常。鶯谷 → 日暮里只有 1 站，雨天也可以改叫計程車直接到日暮里站（約 5 分）' } },
       { t: '~11:00', icon: '🛫', title: '抵達成田第 2 航廈，辦理登機', note: '車站出閘門後直通航廈，到 3F 出境大廳', tags: ['11:30 前'] },
       { t: '11:30', end: '14:00', icon: '🎁', title: '機場管制區內買伴手禮', note: '東京香蕉、Royce、薯條三兄弟等都有 · 14:00 前到登機門' },
       { t: '14:30', end: '18:15', endLabel: '17:15', endNote: '台灣時間', icon: '✈️', title: '成田 → 桃園', note: '14:30 起飛 · 17:15 抵達（台灣時間）', leg: 'd6c' },
@@ -482,7 +545,6 @@ const DAYS = [
       { t: '~19:40', end: '20:10', icon: '🚗', title: 'Uber 回家', tw: true },
     ],
     tips: [
-      '回程 Skyliner（日暮里 → 成田）車票還沒買，建議先在網路上預訂。',
       '14:30 的班機早上時間很少，不建議排遠的景點。',
       '伴手禮也可以前幾天在上野站 ecute 或阿美橫丁先買。',
     ],
@@ -598,6 +660,91 @@ function openFull(html) {
   document.body.appendChild(el);
 }
 
+/* 全螢幕看截圖：雙指縮放、拖曳、點兩下放大／還原，沒放大時點一下關閉 */
+function openImage(src) {
+  const el = document.createElement('div');
+  el.className = 'fixed inset-0 z-[60] bg-white text-neutral-900 overflow-hidden select-none fade-in';
+  el.style.touchAction = 'none';
+  el.innerHTML = `
+    <img src="${esc(src)}" alt="" draggable="false" class="absolute inset-0 m-auto max-w-[calc(100%-40px)] max-h-[80vh] will-change-transform">
+    <button data-zoom-close aria-label="關閉" class="tap absolute right-4 w-10 h-10 rounded-full bg-black/5 text-[18px] text-neutral-600" style="top:calc(12px + env(safe-area-inset-top))">✕</button>
+    <p class="absolute inset-x-0 text-center text-[12.5px] text-neutral-400 pointer-events-none" style="bottom:calc(16px + env(safe-area-inset-bottom))">雙指或點兩下放大 · 記得把螢幕亮度調高</p>`;
+  const img = el.querySelector('img');
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  let s = 1, x = 0, y = 0;
+  const apply = (anim) => {
+    img.style.transition = anim ? 'transform .2s ease-out' : '';
+    img.style.transform = `translate(${x}px,${y}px) scale(${s})`;
+  };
+  /* 不讓圖片拖出畫面外；比畫面小的方向保持置中 */
+  const bound = () => {
+    if (s < 1.05) s = 1;
+    const mx = Math.max(0, (img.offsetWidth * s - el.clientWidth) / 2), my = Math.max(0, (img.offsetHeight * s - el.clientHeight) / 2);
+    x = clamp(x, -mx, mx); y = clamp(y, -my, my);
+  };
+  /* 以 (px, py) 為中心縮放到 ns 倍 */
+  const zoomAt = (px, py, ns) => {
+    const cx = el.clientWidth / 2, cy = el.clientHeight / 2, qx = (px - cx - x) / s, qy = (py - cy - y) / s;
+    s = clamp(ns, 1, 6); x = px - cx - s * qx; y = py - cy - s * qy;
+  };
+  const close = () => el.remove();
+
+  const pts = new Map();
+  let g = null, moved = false, pinched = false, downAt = 0, tapAt = 0, tapTimer = 0;
+  const begin = () => {
+    const [a, b] = [...pts.values()];
+    if (b) { pinched = true; g = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, s }; }
+    else if (a) g = { px: a.x, py: a.y, x, y };
+  };
+  el.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('[data-zoom-close]')) return;
+    el.setPointerCapture?.(e.pointerId);
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 1) { moved = false; pinched = false; downAt = Date.now(); }
+    begin();
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!pts.has(e.pointerId) || !g) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const [a, b] = [...pts.values()];
+    if (b) {
+      /* 縮放時讓兩指中點下的那一點跟著手指移動 */
+      const cx = el.clientWidth / 2, cy = el.clientHeight / 2, qx = (g.mx - cx - x) / s, qy = (g.my - cy - y) / s;
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      s = clamp(g.s * Math.hypot(a.x - b.x, a.y - b.y) / g.d, 1, 6);
+      x = mx - cx - s * qx; y = my - cy - s * qy;
+      g.mx = mx; g.my = my;
+      apply();
+    } else {
+      const dx = a.x - g.px, dy = a.y - g.py;
+      if (Math.hypot(dx, dy) > 8) moved = true;
+      if (s > 1) { x = g.x + dx; y = g.y + dy; bound(); apply(); }
+    }
+  });
+  const end = (e) => {
+    if (!pts.delete(e.pointerId)) return;
+    if (pts.size) { begin(); return; }   // 放開一指後接著用另一指拖曳
+    g = null;
+    bound(); apply(true);
+    if (moved || pinched || Date.now() - downAt > 400) return;
+    const now = Date.now();
+    if (now - tapAt < 300) {
+      clearTimeout(tapTimer); tapAt = 0;
+      if (s > 1) { s = 1; x = 0; y = 0; } else zoomAt(e.clientX, e.clientY, 2.5);
+      bound(); apply(true);
+      return;
+    }
+    tapAt = now;
+    tapTimer = setTimeout(() => { if (s === 1) close(); }, 300);
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(e.clientX, e.clientY, s * Math.exp(-e.deltaY / 300)); bound(); apply(); }, { passive: false });
+  el.addEventListener('gesturestart', (e) => e.preventDefault());   // iOS Safari：別縮放整個頁面
+  el.querySelector('[data-zoom-close]').addEventListener('click', close);
+  document.body.appendChild(el);
+}
+
 const INPUT = 'w-full rounded-xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 px-3 py-2.5 text-[16px] outline-none';
 const field = (label, html) => `
   <label class="block mb-3"><span class="block text-[12.5px] font-semibold text-neutral-500 dark:text-neutral-400 mb-1">${label}</span>${html}</label>`;
@@ -643,6 +790,25 @@ function schedule(day) {
   });
 }
 
+/* 雨天備案：每天各自切換（存本機），畫面一律透過 dayView() 取得當天要顯示的行程 */
+const RAIN_LEVEL = { low: ['🟢', '幾乎沒影響'], mid: ['🟡', '中度影響'], high: ['🟠', '影響較大'] };
+const rainKey = (d) => 'rain-' + d.date;
+const isRain = (d) => !!d.rain && store.get(rainKey(d)) === '1';
+function dayView(d) {
+  const rain = isRain(d);
+  const items = d.items.map((it) => {
+    /* rainy：'alt' = 行程有更動；'ok' = 照常，只多一段雨天說明 */
+    const x = rain && it.rain ? { ...it, ...it.rain, rainy: Object.keys(it.rain).some((k) => k !== 'tip') ? 'alt' : 'ok' } : { ...it };
+    if (it.shops) x.shops = { hint: (rain && it.shops.rainHint) || it.shops.hint,
+      list: it.shops.list.filter((sh) => rain || !sh.rainOnly).map((sh) => (rain && sh.rain ? { ...sh, ...sh.rain } : sh)) };
+    return x;
+  });
+  /* 只留下行程用得到的路段（例如雨天不去上野公園，就不顯示那一段） */
+  const used = new Set(items.map((it) => it.leg).filter(Boolean));
+  const legs = d.legs.filter((l) => used.has(l.id)).map((l) => (rain && l.rain ? { ...l, ...l.rain, rainy: true } : l));
+  return { ...d, items, legs, rainOn: rain, bring: rain ? [...d.bring, ...(d.rain.bring || [])] : d.bring };
+}
+
 /* 預約／票券：有標籤（已預約、門票…）、搭飛機或標 ticket 的行程，票券內容只存在本機 */
 const isTicket = (it) => it.ticket || it.tags?.length || it.icon === '✈️';
 const SLOTS = DAYS.flatMap((d, di) => {
@@ -660,7 +826,7 @@ function progress(dayIdx) {
   const raw = store.get('here-' + DAYS[dayIdx].date);
   if (raw == null) return null;
   const at = +raw;
-  const sc = schedule(DAYS[dayIdx])[at];
+  const sc = schedule(dayView(DAYS[dayIdx]))[at];
   if (!sc) return null;
   const now = tokyo.min;
   if (now < sc.start) return { at, kind: 'ahead', diff: sc.start - now, shift: now - sc.start };
@@ -681,7 +847,7 @@ const state = {
 function currentItemIndex(dayIdx) {
   if (dayIdx !== todayIdx) return -1;
   let idx = -1;
-  schedule(DAYS[dayIdx]).forEach((sc, i) => { if (sc.start <= tokyo.min) idx = i; });
+  schedule(dayView(DAYS[dayIdx])).forEach((sc, i) => { if (sc.start <= tokyo.min) idx = i; });
   return idx;
 }
 
@@ -705,7 +871,7 @@ function renderPills() {
       <button data-day="${i}" class="tap shrink-0 w-[62px] rounded-2xl py-1.5 text-center transition-colors
         ${on ? 'text-white shadow-md' : 'bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300'}"
         style="${on ? `background:linear-gradient(135deg,${d.color[0]},${d.color[1]})` : ''}">
-        <div class="text-[11px] font-semibold ${on ? 'opacity-90' : 'text-neutral-400'}">Day ${i + 1}</div>
+        <div class="text-[11px] font-semibold ${on ? 'opacity-90' : 'text-neutral-400'}">Day ${i + 1}${isRain(d) ? ' ☔' : ''}</div>
         <div class="text-[15px] font-bold tabular leading-tight">${d.md}</div>
         <div class="text-[11px] ${on ? 'opacity-90' : 'text-neutral-400'}">週${d.wd}${i === todayIdx ? ' · 今' : ''}</div>
         ${w ? `<div class="text-[11px] font-semibold tabular leading-tight mt-0.5">${wmo(w.code).icon}${Math.round(w.max)}°</div>` : ''}
@@ -725,7 +891,10 @@ function hero(d, i) {
   return `
     <section class="fade-in rounded-3xl p-5 text-white shadow-lg mb-5"
       style="background:linear-gradient(135deg,${d.color[0]},${d.color[1]})">
-      <p class="text-[13px] font-semibold opacity-90">DAY ${i + 1} · ${d.md}（${d.wd}）</p>
+      <div class="flex items-center justify-between gap-2">
+        <p class="text-[13px] font-semibold opacity-90">DAY ${i + 1} · ${d.md}（${d.wd}）</p>
+        ${isRain(d) ? '<span class="shrink-0 rounded-full bg-white/25 text-[12px] font-bold px-2.5 py-0.5">☔ 雨天備案</span>' : ''}
+      </div>
       <h2 class="text-[24px] font-bold leading-tight mt-0.5">${d.title}</h2>
       <p class="text-[14px] opacity-90 mt-0.5">${d.sub}</p>
     </section>`;
@@ -739,6 +908,29 @@ function tipsBlock(d) {
       <ul class="space-y-1.5 text-[14px] leading-relaxed text-amber-900 dark:text-amber-100/90">
         ${d.tips.map((t) => `<li class="flex gap-2"><span class="opacity-60">•</span><span>${t}</span></li>`).join('')}
       </ul>
+    </section>`;
+}
+
+/* 雨天備案開關：預報有雨時提示切換 */
+function rainCard(d) {
+  if (!d.rain) return '';
+  const on = isRain(d), [dot, lv] = RAIN_LEVEL[d.rain.level];
+  const w = wxDay(d.date), wet = w && (w.rain >= 1 || isRainCode(w.code));
+  const n = dayView(d).items.filter((it) => it.rainy === 'alt').length;
+  return `
+    <section class="fade-in rounded-2xl shadow-sm mb-4 ${on ? 'bg-sky-50 dark:bg-sky-400/10 ring-1 ring-sky-300/70 dark:ring-sky-400/30' : 'bg-white dark:bg-neutral-900'}">
+      <label class="flex items-center gap-3 px-4 py-3.5 cursor-pointer">
+        <span class="text-[24px]">☔</span>
+        <span class="flex-1 min-w-0">
+          <span class="block text-[15px] font-semibold">雨天備案</span>
+          <span class="block text-[12.5px] text-neutral-500 dark:text-neutral-400 mt-0.5 leading-snug">${dot} ${lv}：${d.rain.sum}</span>
+        </span>
+        <input type="checkbox" data-rain class="peer sr-only" ${on ? 'checked' : ''}>
+        <span class="relative w-[51px] h-[31px] shrink-0 rounded-full bg-neutral-200 dark:bg-neutral-700 transition-colors peer-checked:bg-sky-500
+          after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-[27px] after:h-[27px] after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:after:translate-x-[20px]"></span>
+      </label>
+      ${on ? `<p class="px-4 pb-3 -mt-1 text-[12.5px] font-semibold text-sky-700 dark:text-sky-300 leading-snug">已切換成雨天行程：${n ? `${n} 個行程有調整，` : ''}標 ☔ 的是雨天的安排${d.rain.bring?.length ? '，要帶的東西也加上雨具了' : ''}</p>`
+        : wet ? `<p class="px-4 pb-3 -mt-1 text-[12.5px] font-semibold text-sky-700 dark:text-sky-300 leading-snug">預報這天可能下雨（${w.rain.toFixed(1)} mm），出門前看一下要不要切換</p>` : ''}
     </section>`;
 }
 
@@ -784,7 +976,7 @@ function progressBanner(d, sc, pg) {
 
 /* ---------- 候選店家 ---------- */
 const readJson = (k) => { try { return JSON.parse(store.get(k)) || {}; } catch (e) { return {}; } };
-const picksKey = () => 'picks-' + DAYS[state.day].date;
+const picksKey = () => 'picks-' + DAYS[state.day].date + (isRain(DAYS[state.day]) ? '-rain' : '');
 const openKey  = () => 'open-' + DAYS[state.day].date;
 
 /* 沒勾過的店：建議刪除、時間有剩再逛的預設不選，其餘預設選取 */
@@ -916,7 +1108,7 @@ function shopsPanel(it, i, s, color) {
 }
 
 function renderPlan() {
-  const d = DAYS[state.day];
+  const d = dayView(DAYS[state.day]);
   const sc = schedule(d);
   const cur = currentItemIndex(state.day);
   const pg = progress(state.day);
@@ -943,6 +1135,8 @@ function renderPlan() {
 
     const open = it.shops && shopsOpen(i);
     const shops = it.shops ? shopsToggle(it, i, open) + (open ? shopsPanel(it, i, s, d.color[0]) : '') : '';
+    const rainTip = it.rainy && it.tip ? `
+      <p class="mt-2 rounded-lg bg-sky-50 dark:bg-sky-400/10 text-sky-800 dark:text-sky-200 text-[12.5px] px-2 py-1.5 leading-snug">☔ ${it.tip}</p>` : '';
 
     /* 依目前進度推估的時間（只顯示在「我在這」之後、且差距 ≥ 5 分的行程） */
     const projected = pg && i > pg.at && Math.abs(pg.shift) >= 5 ? `
@@ -977,8 +1171,8 @@ function renderPlan() {
             style="background:${isNow ? '#E11D48' : d.color[0]}"></span>
         </div>
         <div class="flex-1 min-w-0 pb-3">
-          <div class="rounded-2xl bg-white dark:bg-neutral-900 p-3.5 shadow-sm ${isHere ? 'ring-2 ring-rose-500' : isNow ? 'ring-2 ring-rose-500/50' : ''}">
-            ${isNow ? '<p class="text-[11px] font-bold text-rose-600 dark:text-rose-400 mb-1">● 表定現在</p>' : ''}
+          <div class="rounded-2xl bg-white dark:bg-neutral-900 p-3.5 shadow-sm ${isHere ? 'ring-2 ring-rose-500' : isNow ? 'ring-2 ring-rose-500/50' : it.rainy === 'alt' ? 'ring-1 ring-sky-400/60' : ''}">
+            ${isNow || it.rainy === 'alt' ? `<p class="flex gap-2 text-[11px] font-bold mb-1">${isNow ? '<span class="text-rose-600 dark:text-rose-400">● 表定現在</span>' : ''}${it.rainy === 'alt' ? '<span class="text-sky-600 dark:text-sky-400">☔ 雨天備案</span>' : ''}</p>` : ''}
             <div class="flex items-start gap-2.5 ${it.shops ? 'cursor-pointer' : ''}" ${it.shops ? `data-toggle-shops="${i}"` : ''}>
               <span class="text-[22px] leading-none mt-0.5">${it.icon}</span>
               <div class="min-w-0 flex-1">
@@ -988,6 +1182,7 @@ function renderPlan() {
                 </div>
                 ${it.note ? `<p class="text-[13.5px] text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed whitespace-pre-line">${it.note}</p>` : ''}
                 <p class="text-[12px] text-neutral-400 mt-1.5 tabular">⏱ 預計約 ${fmtDur(s.end - s.start)}</p>
+                ${rainTip}
                 ${tags ? `<div class="flex flex-wrap gap-1.5 mt-2">${tags}</div>` : ''}
                 ${nowHint}${projected}
               </div>
@@ -999,7 +1194,7 @@ function renderPlan() {
       </li>`;
   }).join('');
 
-  return hero(d, state.day) + weatherCard(d) + bringCard(d) + nextBanner() + progressBanner(d, sc, pg) + `<ol class="relative">${rows}</ol>` + tipsBlock(d);
+  return hero(d, state.day) + weatherCard(d) + rainCard(d) + bringCard(d) + nextBanner() + progressBanner(d, sc, pg) + `<ol class="relative">${rows}</ol>` + tipsBlock(d);
 }
 
 /* 當天要帶的東西（勾選狀態存本機） */
@@ -1062,7 +1257,7 @@ function navButtons(o, dest, mode) {
 }
 
 function renderRoute() {
-  const d = DAYS[state.day];
+  const d = dayView(DAYS[state.day]);
   const cards = d.legs.map((leg, i) => {
     const alt = leg.alt ? `
       <details class="mt-3 rounded-xl bg-neutral-100 dark:bg-neutral-800/80 group">
@@ -1087,7 +1282,10 @@ function renderRoute() {
               <span class="truncate">${leg.to}</span>
             </div>
           </div>
-          <span class="shrink-0 rounded-full bg-neutral-100 dark:bg-neutral-800 text-[12.5px] font-semibold px-2.5 py-1 tabular">${leg.dur}</span>
+          <div class="shrink-0 flex flex-col items-end gap-1">
+            <span class="rounded-full bg-neutral-100 dark:bg-neutral-800 text-[12.5px] font-semibold px-2.5 py-1 tabular">${leg.dur}</span>
+            ${leg.rainy ? '<span class="rounded-full bg-sky-100 dark:bg-sky-400/15 text-sky-700 dark:text-sky-300 text-[11px] font-bold px-2 py-0.5">☔ 雨天路線</span>' : ''}
+          </div>
         </div>
         <div class="h-px bg-neutral-200/80 dark:bg-neutral-800 my-3.5"></div>
         ${stepsList(leg.steps)}
@@ -1101,7 +1299,7 @@ function renderRoute() {
     <p class="text-[12.5px] text-neutral-500 dark:text-neutral-400 mb-3 px-1 leading-relaxed">
       「Google Maps 導航」用行程中的起點規劃；「從目前位置」以你現在的 GPS 位置出發。全程刷 Suica 即可。
     </p>`;
-  return hero(d, state.day) + legend + cards;
+  return hero(d, state.day) + rainCard(d) + legend + cards;
 }
 
 /* ---------- 匯率計算器 ---------- */
@@ -1759,7 +1957,7 @@ function wishBadge(date, s) {
 }
 
 function renderTools() {
-  const m = me(), di = todayIdx >= 0 ? todayIdx : 0, d = DAYS[di];
+  const m = me(), di = todayIdx >= 0 ? todayIdx : 0, d = dayView(DAYS[di]);
 
   const nearby = card('📍 搜尋附近', `
     <div class="grid grid-cols-4 gap-2">${NEARBY.map(([i, t, q]) => `
@@ -1874,7 +2072,7 @@ function showBig(id) {
       <a href="${mapsUrl(P.hotel, 'driving')}" target="_blank" rel="noopener" class="mt-8 rounded-xl bg-[#007AFF] text-white text-[15px] font-semibold px-5 py-3">Google Maps</a>`);
     return;
   }
-  const l = DAYS.flatMap((d) => d.legs).find((x) => x.id === id);
+  const l = DAYS.flatMap((d) => dayView(d).legs).find((x) => x.id === id);
   if (!l) return;
   openFull(`
     <p class="text-[18px] font-semibold text-neutral-500">ここへ行ってください</p>
@@ -2068,6 +2266,13 @@ const HELP = [
       '「要帶」的項目點一下就會打勾，出門前檢查一遍。',
       '行程時段可能下雨時，該行程會出現 ☂️ 標籤。',
     ])}
+    ${subHead('☔ 雨天備案')}
+    ${bullets([
+      '天氣卡下方有「雨天備案」開關，每天各自切換；預報有雨時會提醒你。',
+      '打開後，有更動的行程會標 <b>☔ 雨天備案</b>（例如築地改豐洲市場），照常的行程會多一段雨天注意事項。',
+      '交通分頁、要帶的東西、候選店家也會一起換成雨天版本；雨停了關掉開關就切回原本行程。',
+      '雨天和晴天的店家勾選分開記，切來切去不會互相影響。',
+    ])}
     ${subHead('旅途當天：我在這 / 進度')}
     ${shot('plan-progress.jpg', '點「📍 我在這」後，上方顯示進度是超前、準時還是落後')}
     ${bullets([
@@ -2114,7 +2319,7 @@ const HELP = [
       '按「儲存」。',
     ])}
     ${shot('ticket-edit.jpg', '編輯票券：訂位編號、連結、備註、截圖')}
-    ${shot('ticket-full.jpg', '點截圖縮圖會全螢幕白底顯示，點一下關閉')}
+    ${shot('ticket-full.jpg', '點截圖縮圖會全螢幕白底顯示，雙指或點兩下可放大，點一下關閉')}
     ${noteBox('🔒 票券只存在這支手機，不會上傳。截圖存好後，記得到「工具 → 本機資料備份」匯出一份。')}
     ${goTab('ticket', '票券')}`],
 
@@ -2311,7 +2516,7 @@ document.addEventListener('click', (e) => {
   if (act('[data-tk-new]')) { editTicket({}); return; }
   if ((el = act('[data-view]'))) {
     const [id, k] = el.dataset.view.split(':'), src = tickets?.find((t) => t.id === id)?.imgs?.[+k];
-    if (src) openFull(`<img src="${esc(src)}" alt="" class="max-w-full max-h-[85vh] object-contain"><p class="text-[13px] text-neutral-400 mt-3">記得把螢幕亮度調高</p>`);
+    if (src) openImage(src);
     return;
   }
   if ((el = act('[data-copy]'))) {
@@ -2375,7 +2580,7 @@ document.addEventListener('click', (e) => {
   }
   const pick = e.target.closest('[data-pick]');
   if (pick) {
-    const i = +pick.dataset.pick, shop = DAYS[state.day].items[i].shops.list.find((s) => s.k === pick.dataset.k);
+    const i = +pick.dataset.pick, shop = dayView(DAYS[state.day]).items[i].shops.list.find((s) => s.k === pick.dataset.k);
     const picks = readJson(picksKey());
     picks[`${i}:${shop.k}`] = !isPicked(picks, i, shop);
     store.set(picksKey(), JSON.stringify(picks));
@@ -2439,6 +2644,14 @@ document.addEventListener('change', async (e) => {
     const f = e.target.files[0];
     if (f) await importBackup(f);
     e.target.value = '';
+    return;
+  }
+  if (e.target.matches('[data-rain]')) {
+    const d = DAYS[state.day];
+    if (e.target.checked) store.set(rainKey(d), '1'); else store.del(rainKey(d));
+    renderPills();
+    render({ keepScroll: true, quiet: true });
+    toast(e.target.checked ? '☔ 已切換成雨天備案' : '☀️ 已切回原本行程');
     return;
   }
   const k = e.target.dataset?.calc;
