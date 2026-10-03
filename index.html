@@ -13,7 +13,9 @@
 <meta name="format-detection" content="telephone=no">
 <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
-<link rel="apple-touch-icon" id="touchIcon" href="">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -76,7 +78,9 @@
 
   .tabular { font-variant-numeric: tabular-nums; }
   .quiet .fade-in { animation: none; }
-  input { -webkit-user-select: text; user-select: text; }
+  input, textarea, select { -webkit-user-select: text; user-select: text; }
+  .sheet-in { animation: sheetIn .26s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes sheetIn { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
   input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   input[type=number] { -moz-appearance: textfield; }
 </style>
@@ -102,7 +106,7 @@
 
   <!-- 底部分頁列 -->
   <nav class="glass-bar fixed bottom-0 inset-x-0 z-30 safe-bottom border-t border-black/10 dark:border-white/10">
-    <div class="max-w-xl mx-auto grid grid-cols-3">
+    <div class="max-w-xl mx-auto grid grid-cols-5">
       <button data-tab="plan" class="tab-btn tap flex flex-col items-center gap-0.5 pt-2 pb-1.5">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><circle cx="8" cy="14" r="1.2" fill="currentColor"/><path d="M11.5 14h5M8 17.5h8.5"/>
@@ -115,11 +119,23 @@
         </svg>
         <span class="text-[10.5px] font-medium">交通</span>
       </button>
+      <button data-tab="ticket" class="tab-btn tap flex flex-col items-center gap-0.5 pt-2 pb-1.5">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 16.5V14a2 2 0 0 0 0-4Z"/><path d="M15 6v2M15 11v2M15 16v2"/>
+        </svg>
+        <span class="text-[10.5px] font-medium">票券</span>
+      </button>
       <button data-tab="calc" class="tab-btn tap flex flex-col items-center gap-0.5 pt-2 pb-1.5">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
           <rect x="4" y="2.5" width="16" height="19" rx="3"/><path d="M8 6.5h8v3.5H8z"/><circle cx="8.5" cy="14" r="1" fill="currentColor"/><circle cx="12" cy="14" r="1" fill="currentColor"/><circle cx="15.5" cy="14" r="1" fill="currentColor"/><circle cx="8.5" cy="17.5" r="1" fill="currentColor"/><circle cx="12" cy="17.5" r="1" fill="currentColor"/><circle cx="15.5" cy="17.5" r="1" fill="currentColor"/>
         </svg>
-        <span class="text-[10.5px] font-medium">匯率</span>
+        <span class="text-[10.5px] font-medium">錢包</span>
+      </button>
+      <button data-tab="tools" class="tab-btn tap flex flex-col items-center gap-0.5 pt-2 pb-1.5">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><path d="M17 13.5v7M13.5 17h7"/>
+        </svg>
+        <span class="text-[10.5px] font-medium">工具</span>
       </button>
     </div>
   </nav>
@@ -195,17 +211,21 @@ const P = {
               tw:true 表示台灣時間；endLabel / endNote 用於跨時區（飛機）
               shops = 候選店家 { hint, list: [{ k 順序, name, addr, hours, stay 建議停留,
                       desc, note, at 建議時段, q 地圖搜尋字串, flag: maybe | drop, extra:true 時間有剩再逛 }] }
+              ticket:true 列入票券分頁（有 tags 或搭飛機的行程會自動列入）
+              remind:true 匯出行事曆時也加入（票券分頁的行程會自動加入）；alarm = 提前幾分鐘提醒（預設 30）
+   day 欄位：bring = 當天要帶的東西
    ========================================================= */
 const DAYS = [
   {
     date: '2026-10-12', md: '10/12', wd: '一', title: '抵達東京', sub: '日本體育節連假最後一天',
     color: ['#F43F5E', '#FB923C'],
+    bring: ['護照', '登機證', 'Visit Japan Web QR Code', 'Skyliner 車票', '日圓現金', '行動電源'],
     items: [
-      { t: '08:00', icon: '🚄', title: '台中烏日 → 高鐵桃園站', tw: true, leg: 'd1a' },
+      { t: '08:00', icon: '🚄', title: '台中烏日 → 高鐵桃園站', tw: true, ticket: true, leg: 'd1a' },
       { t: '~09:00', icon: '🚆', title: '高鐵桃園站 → 機場第二航廈', note: '機場捷運 A18 → A13', tw: true, leg: 'd1b' },
       { t: '12:15', icon: '✈️', title: '桃園 → 成田', note: '12:15 起飛 · 16:35 抵達（日本時間）', tw: true, endLabel: '16:35', endNote: '日本時間', leg: 'd1c' },
       { t: '16:35', icon: '🛂', title: '入境、領行李', note: '連假尾聲人多，抓 1 小時' },
-      { t: '~17:40', icon: '🚆', title: '成田機場 → 日暮里', leg: 'd1d' },
+      { t: '~17:40', icon: '🚆', title: '成田機場 → 日暮里', ticket: true, leg: 'd1d' },
       { t: '~18:30', icon: '🚃', title: '日暮里 → 鶯谷', leg: 'd1e' },
       { t: '~18:45', icon: '🏨', title: '飯店 Check-in、放行李', note: 'CANDEO HOTELS 上野公園', leg: 'd1f' },
       { t: '19:35', icon: '🚕', title: '出發去晚餐', note: '計程車約 10 分（約 ¥1,000–1,300）；步行約 25 分', leg: 'd1g' },
@@ -241,6 +261,7 @@ const DAYS = [
   {
     date: '2026-10-13', md: '10/13', wd: '二', title: '淺草・晴空塔・秋葉原', sub: '晚上逛阿美橫丁',
     color: ['#F59E0B', '#EF4444'],
+    bring: ['護照（Bic Camera 退稅）', '晴空塔預約 QR', '行動電源', '好走的鞋'],
     items: [
       { t: '08:30', icon: '⛩️', title: '淺草寺・雷門・仲見世通', note: '早去人少，店家約 9:30–10:00 開', leg: 'd2a' },
       { t: '10:45', icon: '🚶', title: '走到晴空塔', note: '推薦走 SUMIDA RIVER WALK，順路拍晴空塔', leg: 'd2b' },
@@ -290,10 +311,11 @@ const DAYS = [
   {
     date: '2026-10-14', md: '10/14', wd: '三', title: '東京迪士尼樂園', sub: '20:50 巴士回上野 · 萬聖節活動期間',
     color: ['#8B5CF6', '#EC4899'],
+    bring: ['迪士尼門票', '回程巴士車票', '行動電源（App 很耗電）', '薄外套（晚上變涼）'],
     items: [
       { t: '07:30', icon: '🏨', title: '飯店出發', note: '總計約 50–60 分', leg: 'd3a' },
       { t: '08:30', icon: '🏰', title: '抵達樂園排隊入園', note: '先下載官方 App，入園後買 Premier Access / 抽表演', tags: ['指定日門票'] },
-      { t: '20:25', icon: '🚶', title: '往樂園出口走', note: '晚上出園人潮多，抓 15 分\n先用 App 看夜間遊行和煙火時間，衝到就提早離開' },
+      { t: '20:25', icon: '🚶', title: '往樂園出口走', remind: true, alarm: 10, note: '晚上出園人潮多，抓 15 分\n先用 App 看夜間遊行和煙火時間，衝到就提早離開' },
       { t: '20:40', end: '21:45', icon: '🚌', title: '樂園巴士站搭車 → 上野', note: '20:50 發車，20:40 前到', tags: ['已預約 20:50'], leg: 'd3b' },
       { t: '~21:45', end: '22:05', icon: '🏨', title: '抵達上野 → 回飯店', leg: 'd3c' },
     ],
@@ -316,6 +338,7 @@ const DAYS = [
   {
     date: '2026-10-15', md: '10/15', wd: '四', title: 'teamLab・築地・東京鐵塔・銀座', sub: '大江戶線、日比谷線一路串起來',
     color: ['#06B6D4', '#6366F1'],
+    bring: ['teamLab 預約 QR', '可捲到膝蓋的褲子（不穿裙子）', '小毛巾', '護照（銀座退稅）'],
     items: [
       { t: '09:05', icon: '🏨', title: '飯店出發', note: '總計約 50 分', leg: 'd4a' },
       { t: '10:00', icon: '🎨', title: 'teamLab Planets', note: '約 1.5–2 小時\n會踩水到膝蓋，穿可捲起的褲子，不要穿裙子', tags: ['已預約 10:00'] },
@@ -362,6 +385,7 @@ const DAYS = [
   {
     date: '2026-10-16', md: '10/16', wd: '五', title: '新宿・原宿・澀谷', sub: '購物日 · 記得帶護照退稅',
     color: ['#10B981', '#0EA5E9'],
+    bring: ['護照（退稅）', '叙叙苑・SHIBUYA SKY 預約', '摺疊購物袋', '行動電源'],
     items: [
       { t: '09:30', icon: '🏨', title: '飯店出發', leg: 'd5a' },
       { t: '10:00', end: '11:20', icon: '🛍️', title: '新宿逛街', note: '百貨多 10:00–11:00 才開',
@@ -442,15 +466,16 @@ const DAYS = [
   {
     date: '2026-10-17', md: '10/17', wd: '六', title: '上野公園・返台', sub: '最晚 10:00 離開飯店',
     color: ['#64748B', '#0EA5E9'],
+    bring: ['護照', '回程 Skyliner 車票', '登機證', '免稅品密封袋（出境前不要拆）'],
     items: [
       { t: '08:00', icon: '🌳', title: '早餐，上野公園・不忍池散步', note: '飯店就在旁邊', leg: 'd6a' },
-      { t: '09:30', icon: '🧳', title: '飯店 Check-out' },
+      { t: '09:30', icon: '🧳', title: '飯店 Check-out', remind: true },
       { t: '~10:00', icon: '🚆', title: '前往成田第 2 航廈', note: '在「空港第2ビル」站下車，不要坐到終點', tags: ['車票還沒買'], leg: 'd6b' },
       { t: '~11:00', icon: '🛫', title: '抵達成田第 2 航廈，辦理登機', note: '車站出閘門後直通航廈，到 3F 出境大廳', tags: ['11:30 前'] },
       { t: '11:30', end: '14:00', icon: '🎁', title: '機場管制區內買伴手禮', note: '東京香蕉、Royce、薯條三兄弟等都有 · 14:00 前到登機門' },
       { t: '14:30', end: '18:15', endLabel: '17:15', endNote: '台灣時間', icon: '✈️', title: '成田 → 桃園', note: '14:30 起飛 · 17:15 抵達（台灣時間）', leg: 'd6c' },
       { t: '~18:00', icon: '🚆', title: '桃園機場 → 高鐵桃園站', tw: true, leg: 'd6d' },
-      { t: '~18:40', icon: '🚄', title: '高鐵桃園 → 台中烏日', tw: true, leg: 'd6e' },
+      { t: '~18:40', icon: '🚄', title: '高鐵桃園 → 台中烏日', tw: true, ticket: true, leg: 'd6e' },
       { t: '~19:40', end: '20:10', icon: '🚗', title: 'Uber 回家', tw: true },
     ],
     tips: [
@@ -514,6 +539,94 @@ function mapsUrl(dest, mode, origin) {
   if (origin) q.set('origin', origin);
   return 'https://www.google.com/maps/dir/?' + q.toString();
 }
+const searchUrl = (q) => 'https://www.google.com/maps/search/?' + new URLSearchParams({ api: '1', query: q }).toString();
+
+/* 使用者輸入的文字一律跳脫後才放進畫面 */
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* 只接受 http(s) 網址；沒寫 https:// 的自動補上，其餘（javascript: 等）回傳 null */
+function safeUrl(s) {
+  s = String(s ?? '').trim();
+  if (!s) return null;
+  if (!/^[a-z][a-z\d+.-]*:/i.test(s)) s = 'https://' + s;
+  try { const u = new URL(s); return /^https?:$/.test(u.protocol) && u.hostname.includes('.') ? u.href : null; } catch (e) { return null; }
+}
+const uid = () =>Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const readArr = (k) => { try { const v = JSON.parse(store.get(k)); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+const writeJson = (k, v) => store.set(k, JSON.stringify(v));
+const telHref = (s) => 'tel:' + encodeURIComponent(String(s).replace(/[^\d#+]/g, ''));
+const phoneIn = (s) => (/[+#]?\d[\d\- ]{2,}\d/.exec(s || '') || [])[0];
+
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'fixed left-1/2 -translate-x-1/2 z-[70] rounded-full bg-neutral-900/90 text-white text-[13.5px] font-semibold px-4 py-2 shadow-lg fade-in';
+  el.style.bottom = 'calc(100px + env(safe-area-inset-bottom))';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1800);
+}
+
+/* 底部彈出的編輯面板 */
+function openSheet(title, body) {
+  closeSheet();
+  const el = document.createElement('div');
+  el.id = 'sheet';
+  el.className = 'fixed inset-0 z-50 flex items-end justify-center';
+  el.innerHTML = `
+    <div data-sheet-close class="absolute inset-0 bg-black/40"></div>
+    <div class="sheet-in relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-t-3xl bg-[#F2F2F7] dark:bg-neutral-950 px-4 pt-4"
+      style="padding-bottom:calc(20px + env(safe-area-inset-bottom))">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-[18px] font-bold">${title}</h3>
+        <button data-sheet-close class="tap w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-300 font-bold" aria-label="關閉">✕</button>
+      </div>
+      ${body}
+    </div>`;
+  document.body.appendChild(el);
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet() { $('#sheet')?.remove(); document.body.style.overflow = ''; }
+
+/* 全螢幕白底：給人看 QR Code、給司機看地址 */
+function openFull(html) {
+  const el = document.createElement('div');
+  el.className = 'fixed inset-0 z-[60] bg-white text-neutral-900 flex flex-col items-center justify-center p-5 fade-in';
+  el.innerHTML = html + '<p class="absolute inset-x-0 text-center text-[12.5px] text-neutral-400" style="bottom:calc(16px + env(safe-area-inset-bottom))">點一下關閉</p>';
+  el.addEventListener('click', (e) => { if (!e.target.closest('a')) el.remove(); });
+  document.body.appendChild(el);
+}
+
+const INPUT = 'w-full rounded-xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 px-3 py-2.5 text-[16px] outline-none';
+const field = (label, html) => `
+  <label class="block mb-3"><span class="block text-[12.5px] font-semibold text-neutral-500 dark:text-neutral-400 mb-1">${label}</span>${html}</label>`;
+const chipGroup = (label, name, opts, val) => `
+  <div class="mb-3"><p class="text-[12.5px] font-semibold text-neutral-500 dark:text-neutral-400 mb-1.5">${label}</p>
+    <div class="flex flex-wrap gap-2">${opts.map(([v, text]) => `
+      <label class="cursor-pointer"><input type="radio" name="${name}" value="${v}" class="peer sr-only" ${String(v) === String(val) ? 'checked' : ''}>
+        <span class="block rounded-full px-3 py-1.5 text-[13.5px] font-semibold bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10
+          peer-checked:bg-rose-600 peer-checked:border-rose-600 peer-checked:text-white">${text}</span></label>`).join('')}</div></div>`;
+const sheetBtns = (save, del) => `
+  <div class="flex gap-2 mt-4">
+    ${del ? `<button ${del} class="tap rounded-xl bg-rose-100 dark:bg-rose-500/15 text-rose-600 dark:text-rose-300 text-[15px] font-semibold px-4 py-3">刪除</button>` : ''}
+    <button ${save} class="tap flex-1 rounded-xl bg-rose-600 text-white text-[15px] font-semibold py-3">儲存</button>
+  </div>`;
+const card = (title, body, extra = '') => `
+  <section class="fade-in rounded-2xl bg-white dark:bg-neutral-900 shadow-sm p-4 mb-4">
+    <div class="flex items-center justify-between gap-2 mb-2.5"><h3 class="text-[15px] font-bold">${title}</h3>${extra}</div>
+    ${body}
+  </section>`;
+const smallBtn = (attr, text) => `<button ${attr} class="tap shrink-0 rounded-full bg-rose-50 dark:bg-rose-400/15 text-rose-600 dark:text-rose-300 px-3 py-1 text-[12.5px] font-semibold">${text}</button>`;
+
+/* 分享或下載檔案（iPhone 優先用分享選單，可存到「檔案」或傳 LINE） */
+async function saveFile(name, text, type, share) {
+  const file = new File([text], name, { type });
+  if (share && navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
 
 /* 每個行程的預計時段，統一換算成「東京時間的分鐘數」方便比較（台灣時間 +60） */
 function schedule(day) {
@@ -526,6 +639,17 @@ function schedule(day) {
     return { start, end, local };
   });
 }
+
+/* 預約／票券：有標籤（已預約、門票…）、搭飛機或標 ticket 的行程，票券內容只存在本機 */
+const isTicket = (it) => it.ticket || it.tags?.length || it.icon === '✈️';
+const SLOTS = DAYS.flatMap((d, di) => {
+  const sc = schedule(d);
+  return d.items.flatMap((it, i) => isTicket(it)
+    ? [{ key: `${d.date}|${it.title}`, di, i, date: d.date, it, start: sc[i].start }] : []);
+});
+const nextSlot = () => SLOTS.find((x) => x.date > tokyo.date || (x.date === tokyo.date && x.start > tokyo.min)) || null;
+const minsUntil = (x) => dayDiff(x.date, tokyo.date) * 1440 + x.start - tokyo.min;
+const untilText = (m) => m >= 1440 ? `${Math.floor(m / 1440)} 天後` : `還有 ${fmtDur(m)}`;
 
 /* 進度：以使用者點「我在這」的行程為基準 */
 function progress(dayIdx) {
@@ -546,7 +670,8 @@ let todayIdx = DAYS.findIndex((d) => d.date === tokyo.date);
 
 const state = {
   day: todayIdx >= 0 ? todayIdx : Math.min(+(store.get('day') || 0), DAYS.length - 1),
-  tab: ['route', 'calc'].includes(store.get('tab')) ? store.get('tab') : 'plan',
+  tab: ['route', 'ticket', 'calc', 'tools'].includes(store.get('tab')) ? store.get('tab') : 'plan',
+  wallet: store.get('wallet') === 'ledger' ? 'ledger' : 'calc',
 };
 
 /* 依表定時間，現在應該在哪個行程（只有旅途當天才標示） */
@@ -736,6 +861,7 @@ function shopRow(s, i, picked, color) {
         <p class="text-[12.5px] text-neutral-500 dark:text-neutral-400 mt-1 leading-snug">📍 ${s.addr}</p>
         ${meta ? `<p class="text-[12.5px] text-neutral-500 dark:text-neutral-400 leading-snug tabular">${meta}</p>` : ''}
         ${s.desc ? `<p class="text-[13px] mt-1 leading-snug">${s.desc}</p>` : ''}
+        ${wishBadge(DAYS[state.day].date, s)}
         ${s.note ? `<p class="text-[12.5px] mt-1.5 rounded-lg px-2 py-1 leading-snug ${noteCls}">${s.flag === 'drop' ? '🔴 ' : s.flag === 'maybe' ? '🟡 ' : '💡 '}${s.note}</p>` : ''}
       </div>
       <a href="${mapsUrl(s.q, 'walking')}" target="_blank" rel="noopener"
@@ -870,7 +996,40 @@ function renderPlan() {
       </li>`;
   }).join('');
 
-  return hero(d, state.day) + weatherCard(d) + progressBanner(d, sc, pg) + `<ol class="relative">${rows}</ol>` + tipsBlock(d);
+  return hero(d, state.day) + weatherCard(d) + bringCard(d) + nextBanner() + progressBanner(d, sc, pg) + `<ol class="relative">${rows}</ol>` + tipsBlock(d);
+}
+
+/* 當天要帶的東西（勾選狀態存本機） */
+function bringCard(d) {
+  if (!d.bring?.length) return '';
+  const done = readJson('bring-' + d.date);
+  const n = d.bring.filter((x) => done[x]).length;
+  const chips = d.bring.map((x) => `
+    <button data-bring="${esc(x)}" class="tap inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[13px] font-semibold
+      ${done[x] ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-300 line-through decoration-2' : 'bg-neutral-100 dark:bg-neutral-800'}">
+      ${done[x] ? '✓' : '○'} ${esc(x)}</button>`).join('');
+  return `
+    <section class="fade-in rounded-2xl bg-white dark:bg-neutral-900 shadow-sm p-4 mb-4">
+      <p class="text-[14px] font-semibold mb-2">🎒 ${state.day === todayIdx ? '今天' : '這天'}要帶
+        <span class="font-normal text-[12.5px] ${n === d.bring.length ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-500 dark:text-neutral-400'}">· ${n}/${d.bring.length}${n === d.bring.length ? ' 都帶了 👍' : ''}</span></p>
+      <div class="flex flex-wrap gap-1.5">${chips}</div>
+    </section>`;
+}
+
+/* 旅途當天：下一個預約倒數 */
+function nextBanner() {
+  if (state.day !== todayIdx) return '';
+  const n = nextSlot();
+  if (!n || n.date !== tokyo.date) return '';
+  return `
+    <button data-tab="ticket" class="tap fade-in w-full flex items-center gap-3 rounded-2xl bg-white dark:bg-neutral-900 shadow-sm p-3.5 mb-4 text-left">
+      <span class="text-[22px]">🎫</span>
+      <span class="flex-1 min-w-0">
+        <span class="block text-[12px] font-semibold text-rose-600 dark:text-rose-400 tabular">下一個預約 · ${n.it.t} · ${untilText(minsUntil(n))}</span>
+        <span class="block text-[15px] font-semibold truncate">${n.it.title}</span>
+      </span>
+      <span class="text-[12.5px] font-semibold text-neutral-500 dark:text-neutral-400 whitespace-nowrap">看票券 ›</span>
+    </button>`;
 }
 
 /* ---------- 交通 ---------- */
@@ -943,7 +1102,7 @@ function renderRoute() {
 }
 
 /* ---------- 匯率計算器 ---------- */
-const CALC_DEF = { price: '', rate: 0, tax: false, disc: false, pct: 5, at: 0 };
+const CALC_DEF = { price: '', rate: 0, tax: false, disc: false, pct: 5, at: 0, twd: '' };
 const RATE_API = 'https://api.exchangerate-api.com/v4/latest/TWD';
 const calcCfg = () => ({ ...CALC_DEF, ...readJson('calc') });
 const saveCalc = (patch) => store.set('calc', JSON.stringify({ ...calcCfg(), ...patch }));
@@ -993,8 +1152,25 @@ function renderCalc() {
       </div>
     </section>
 
-    <section id="calcOut" class="fade-in rounded-3xl p-5 text-white shadow-lg mb-4"
+    <section id="calcOut" class="fade-in rounded-3xl p-5 text-white shadow-lg mb-3"
       style="background:linear-gradient(135deg,#F43F5E,#FB923C)"></section>
+    <div class="grid grid-cols-2 gap-2 mb-4">
+      <button data-led-new="calc" class="tap rounded-xl bg-white dark:bg-neutral-900 shadow-sm text-[14px] font-semibold py-2.5">📝 記一筆</button>
+      <button data-basket-add class="tap rounded-xl bg-white dark:bg-neutral-900 shadow-sm text-[14px] font-semibold py-2.5">🧾 加入退稅累計</button>
+    </div>
+
+    ${basketCard()}
+
+    <section class="fade-in rounded-2xl bg-white dark:bg-neutral-900 shadow-sm px-4 py-3.5 mb-4">
+      <p class="text-[13px] font-semibold text-neutral-500 dark:text-neutral-400 mb-1.5">台幣 → 日圓（抓預算用）</p>
+      <div class="flex items-center gap-2">
+        <span class="text-[17px] font-bold text-neutral-400">NT$</span>
+        <input id="calcTwd" type="number" inputmode="numeric" min="0" placeholder="0" value="${c.twd || ''}"
+          class="w-28 min-w-0 rounded-xl bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 text-[18px] font-bold tabular outline-none">
+        <span class="text-neutral-400">≈</span>
+        <span id="calcTwdOut" class="flex-1 text-right text-[20px] font-bold tabular"></span>
+      </div>
+    </section>
 
     <section class="fade-in rounded-2xl bg-white dark:bg-neutral-900 shadow-sm px-4 py-3.5 mb-4">
       <div class="flex items-center gap-2">
@@ -1014,9 +1190,8 @@ function updateCalc() {
   $('#calcRate').textContent = r0 ? `¥1 = NT$${r0.toFixed(4)}（NT$1 = ¥${(1 / r0).toFixed(2)}）` : '匯率尚未取得';
   $('#calcRateNote').textContent = (c.at ? `匯率更新：${new Date(c.at).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}` : '連網後會自動取得匯率')
     + '・刷卡另有約 1.5% 海外手續費';
-  const price = Math.max(0, +c.price || 0), rate = +c.rate || 0, pct = Math.min(100, Math.max(0, +c.pct || 0));
-  const afterDisc = c.disc ? price * (1 - pct / 100) : price;
-  const pay = c.tax ? afterDisc / 1.1 : afterDisc;
+  const { price, pct, afterDisc, pay } = calcAmounts(c), rate = r0;
+  $('#calcTwdOut').textContent = rate ? yen(Math.max(0, +c.twd || 0) / rate) : '¥ —';
   const row = (k, v) => `<div class="flex justify-between"><span class="opacity-85">${k}</span><span class="tabular font-semibold">${v}</span></div>`;
   const rows = [row('標價', yen(price))];
   if (c.disc && pct) rows.push(row(`折扣 ${pct}%`, '−' + yen(price - afterDisc)));
@@ -1042,7 +1217,189 @@ async function fetchRate() {
     if (note) note.textContent = c.rate ? '匯率更新失敗（離線？），先沿用上次取得的匯率' : '匯率取得失敗，請連網後按「更新」';
     return;
   }
-  updateCalc();
+  if (state.tab === 'calc' && state.wallet === 'ledger') render({ keepScroll: true, quiet: true });
+  else updateCalc();
+}
+
+/* 標價 → 折扣後（仍含稅）→ 實付 */
+function calcAmounts(c = calcCfg()) {
+  const price = Math.max(0, +c.price || 0), pct = Math.min(100, Math.max(0, +c.pct || 0));
+  const afterDisc = c.disc ? price * (1 - pct / 100) : price;
+  return { price, pct, afterDisc, pay: c.tax ? afterDisc / 1.1 : afterDisc };
+}
+
+/* ---------- 錢包：換算 / 記帳 切換 ---------- */
+function renderWallet() {
+  const seg = [['calc', '💱 換算'], ['ledger', '📒 記帳']].map(([k, t]) => `
+    <button data-wallet="${k}" class="tap rounded-[10px] py-1.5 text-[14px] font-semibold
+      ${state.wallet === k ? 'bg-white dark:bg-neutral-700 shadow-sm' : 'text-neutral-500 dark:text-neutral-400'}">${t}</button>`).join('');
+  return `<div class="grid grid-cols-2 gap-0.5 rounded-xl bg-neutral-200/80 dark:bg-neutral-800 p-0.5 mb-4">${seg}</div>`
+    + (state.wallet === 'ledger' ? renderLedger() : renderCalc());
+}
+
+/* ---------- 退稅累計：同店同日未稅滿 ¥5,000（含稅約 ¥5,500）可免稅 ---------- */
+const TAXFREE = 5000;
+const basket = () => ({ store: '', items: [], ...readJson('basket') });
+const basketTotal = (b = basket()) => b.items.reduce((a, x) => a + x, 0);
+
+function basketCard() {
+  const b = basket(), total = basketTotal(b), ex = total / 1.1, need = Math.ceil(TAXFREE * 1.1 - total);
+  const ok = ex >= TAXFREE;
+  const items = b.items.map((x, i) => `
+    <button data-basket-del="${i}" class="tap inline-flex items-center gap-1 rounded-full bg-neutral-100 dark:bg-neutral-800 px-2.5 py-1 text-[13px] font-semibold tabular">
+      ${yen(x)} <span class="text-neutral-400">✕</span></button>`).join('');
+  return card('🧾 退稅累計（同一家店、同一天）', `
+    <input id="basketStore" placeholder="店名（選填）" value="${esc(b.store)}" class="${INPUT} !py-2 !text-[15px] mb-2.5">
+    ${items ? `<div class="flex flex-wrap gap-1.5 mb-2.5">${items}</div>`
+      : '<p class="text-[12.5px] text-neutral-500 dark:text-neutral-400 mb-2.5">在上面輸入標價後按「加入退稅累計」，逛同一家店時一件一件加進來。</p>'}
+    <div class="h-2.5 rounded-full bg-neutral-200 dark:bg-neutral-800 overflow-hidden">
+      <div class="h-full rounded-full ${ok ? 'bg-emerald-500' : 'bg-amber-400'}" style="width:${Math.min(100, ex / TAXFREE * 100)}%"></div>
+    </div>
+    <p class="text-[13px] mt-2 tabular">含稅 <b>${yen(total)}</b> · 未稅 ${yen(ex)}</p>
+    <p class="text-[13.5px] font-semibold mt-0.5 ${ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-300'}">
+      ${ok ? '✅ 已達免稅門檻，結帳時出示護照正本' : total ? `再買含稅 ${yen(need)} 就能免稅` : '未稅滿 ¥5,000 可免稅'}</p>
+    ${total ? `<div class="grid grid-cols-[1fr_auto] gap-2 mt-3">
+      <button data-led-new="basket" class="tap rounded-xl bg-rose-600 text-white text-[14px] font-semibold py-2.5">結帳，記一筆</button>
+      <button data-basket-clear class="tap rounded-xl bg-neutral-100 dark:bg-neutral-800 text-[14px] font-semibold px-4">清空</button></div>` : ''}`,
+    '<span class="text-[11.5px] text-neutral-400">一般商品 10%</span>');
+}
+
+/* ---------- 記帳＋兩人分帳 ---------- */
+const CATS = [['food', '🍜 餐飲'], ['traffic', '🚃 交通'], ['shop', '🛍️ 購物'], ['ticket', '🎟️ 門票'], ['other', '📦 其他']];
+const PAYS = [['cash', '💴 現金'], ['card', '💳 信用卡'], ['paypay', '📱 PayPay'], ['suica', '🚃 Suica']];
+const catOf = (k) => (CATS.find((c) => c[0] === k) || CATS[4])[1];
+const payOf = (k) => (PAYS.find((c) => c[0] === k) || PAYS[0])[1];
+const names = () => { const n = readJson('ledger-cfg').names; return Array.isArray(n) && n.length === 2 ? n : ['我', '旅伴']; };
+const ledger = () => readArr('ledger');
+const asNtd = (y) => { const r = +calcCfg().rate; return r ? ntd(y * r) : ''; };
+
+function ledgerStats(list) {
+  const paid = [0, 0], share = [0, 0], cashIn = [0, 0], cashOut = [0, 0], cats = {};
+  let total = 0, today = 0;
+  list.forEach((e) => {
+    if (e.kind === 'cash') { cashIn[e.by] += e.yen; return; }
+    total += e.yen;
+    if (e.date === tokyo.date) today += e.yen;
+    cats[e.cat] = (cats[e.cat] || 0) + e.yen;
+    paid[e.by] += e.yen;
+    if (e.split === 'both') { share[0] += e.yen / 2; share[1] += e.yen / 2; } else share[+e.split] += e.yen;
+    if (e.pay === 'cash') cashOut[e.by] += e.yen;
+  });
+  return { total, today, cats, bal: paid[0] - share[0], cash: [cashIn[0] - cashOut[0], cashIn[1] - cashOut[1]], hasCash: cashIn[0] + cashIn[1] > 0 };
+}
+
+function renderLedger() {
+  const list = ledger(), nm = names(), st = ledgerStats(list);
+  const settle = Math.abs(st.bal) < 1 ? '目前不用找錢 👍'
+    : `<b>${esc(nm[st.bal > 0 ? 1 : 0])}</b> 要給 <b>${esc(nm[st.bal > 0 ? 0 : 1])}</b> ${yen(Math.abs(st.bal))}${asNtd(Math.abs(st.bal)) ? `<span class="opacity-80">（≈${asNtd(Math.abs(st.bal))}）</span>` : ''}`;
+  const catRows = Object.entries(st.cats).sort((a, b) => b[1] - a[1]).map(([k, v]) => `
+    <div class="flex items-center gap-2 text-[13px]">
+      <span class="w-[68px] shrink-0">${catOf(k)}</span>
+      <div class="flex-1 h-2 rounded-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden"><div class="h-full rounded-full bg-rose-500" style="width:${v / st.total * 100}%"></div></div>
+      <span class="w-[72px] shrink-0 text-right tabular font-semibold">${yen(v)}</span>
+    </div>`).join('');
+
+  const byDate = {};
+  list.forEach((e) => (byDate[e.date] ||= []).push(e));
+  const groups = Object.keys(byDate).sort().reverse().map((date) => {
+    const di = DAYS.findIndex((d) => d.date === date);
+    const rows = byDate[date].sort((a, b) => b.ts - a.ts);
+    const sum = rows.filter((e) => e.kind !== 'cash').reduce((a, e) => a + e.yen, 0);
+    return `
+      <div class="flex items-baseline justify-between px-1 mt-4 mb-1.5">
+        <p class="text-[13px] font-bold text-neutral-500 dark:text-neutral-400">${di >= 0 ? `Day ${di + 1} · ${DAYS[di].md}（${DAYS[di].wd}）` : date}</p>
+        <p class="text-[12.5px] text-neutral-500 dark:text-neutral-400 tabular">${yen(sum)}</p>
+      </div>
+      <ul class="rounded-2xl bg-white dark:bg-neutral-900 shadow-sm divide-y divide-black/5 dark:divide-white/10">${rows.map((e) => `
+        <li><button data-led-edit="${e.id}" class="tap w-full flex items-center gap-3 px-3.5 py-2.5 text-left">
+          <span class="text-[20px]">${e.kind === 'cash' ? '🏧' : catOf(e.cat).split(' ')[0]}</span>
+          <span class="flex-1 min-w-0">
+            <span class="block text-[14.5px] font-semibold truncate">${esc(e.note) || (e.kind === 'cash' ? '現金入帳' : catOf(e.cat).split(' ')[1])}</span>
+            <span class="block text-[11.5px] text-neutral-500 dark:text-neutral-400">${esc(nm[e.by])} ${e.kind === 'cash' ? '存入' : `付・${payOf(e.pay)}・${e.split === 'both' ? '平分' : `只算${esc(nm[+e.split])}`}`}</span>
+          </span>
+          <span class="text-right tabular">
+            <span class="block text-[15px] font-bold ${e.kind === 'cash' ? 'text-emerald-600 dark:text-emerald-400' : ''}">${e.kind === 'cash' ? '+' : ''}${yen(e.yen)}</span>
+            <span class="block text-[11px] text-neutral-400">${asNtd(e.yen)}</span>
+          </span>
+        </button></li>`).join('')}</ul>`;
+  }).join('');
+
+  return `
+    <section class="fade-in rounded-3xl p-5 text-white shadow-lg mb-3" style="background:linear-gradient(135deg,#F43F5E,#FB923C)">
+      <p class="text-[13px] font-semibold opacity-90">旅程總花費</p>
+      <p class="text-[36px] font-bold leading-tight tabular">${yen(st.total)}</p>
+      <p class="text-[14px] opacity-90 tabular">${asNtd(st.total) ? `≈ ${asNtd(st.total)}・` : ''}今天 ${yen(st.today)}</p>
+      <div class="mt-3 pt-3 border-t border-white/25 flex items-center justify-between gap-2 text-[14px]">
+        <span>🤝 ${settle}</span>
+        <button data-led-names class="tap shrink-0 rounded-full bg-white/20 text-[12px] font-semibold px-3 py-1">改名字</button>
+      </div>
+    </section>
+    <div class="grid grid-cols-2 gap-2 mb-4">
+      <button data-led-new="spend" class="tap rounded-xl bg-rose-600 text-white text-[15px] font-semibold py-3">＋ 記一筆</button>
+      <button data-led-new="cash" class="tap rounded-xl bg-white dark:bg-neutral-900 shadow-sm text-[14px] font-semibold py-3">🏧 現金入帳</button>
+    </div>
+    ${st.hasCash ? card('💴 現金剩多少', `
+      <div class="grid grid-cols-2 gap-2">${nm.map((n, i) => `
+        <div class="rounded-xl bg-neutral-100 dark:bg-neutral-800 px-3 py-2">
+          <p class="text-[12px] text-neutral-500 dark:text-neutral-400">${esc(n)}</p>
+          <p class="text-[18px] font-bold tabular ${st.cash[i] < 0 ? 'text-rose-600' : ''}">${yen(st.cash[i])}</p></div>`).join('')}</div>
+      <p class="text-[11.5px] text-neutral-400 mt-2">換匯或提款時按「現金入帳」，用現金付的花費會自動扣掉</p>`) : ''}
+    ${catRows ? card('📊 花費分類', `<div class="space-y-2">${catRows}</div>`) : ''}
+    ${groups || '<p class="text-center text-[13.5px] text-neutral-500 dark:text-neutral-400 py-8">還沒有記帳紀錄<br>在「換算」算好價錢後也可以直接按「記一筆」</p>'}
+    <p class="text-[11.5px] text-neutral-400 text-center mt-5">🔒 記帳只存在這支手機・台幣以目前匯率估算，不含刷卡手續費</p>`;
+}
+
+/* 新增／編輯一筆：from = spend | cash | calc | basket，或傳入既有紀錄 */
+function editLedger(from, e) {
+  const nm = names();
+  if (!e) {
+    const b = basket(), tb = basketTotal(b);
+    const yenVal = from === 'calc' ? Math.round(calcAmounts().pay)
+      : from === 'basket' ? Math.round(tb / 1.1 >= TAXFREE ? tb / 1.1 : tb) : '';
+    e = { id: uid(), kind: from === 'cash' ? 'cash' : 'spend', yen: yenVal || '', cat: from === 'spend' ? 'food' : 'shop', pay: 'card', by: 0, split: 'both',
+      note: from === 'basket' ? b.store : from === 'cash' ? '換匯／提款' : '', date: DAYS.some((d) => d.date === tokyo.date) ? tokyo.date : DAYS[0].date, fromBasket: from === 'basket' };
+  }
+  const isNew = !ledger().some((x) => x.id === e.id);
+  const who = nm.map((n, i) => [i, esc(n)]);
+  openSheet(e.kind === 'cash' ? '🏧 現金入帳' : isNew ? '📝 記一筆' : '編輯紀錄', `
+    <form id="ledForm" data-id="${e.id}" data-kind="${e.kind}" data-basket="${e.fromBasket ? 1 : ''}" onsubmit="return false">
+      ${field('金額（日圓）', `<input name="yen" type="number" inputmode="numeric" min="0" value="${e.yen}" placeholder="0" class="${INPUT} !text-[26px] font-bold tabular">`)}
+      ${e.kind === 'cash' ? chipGroup('存到誰的錢包', 'by', who, e.by) : `
+        ${chipGroup('分類', 'cat', CATS, e.cat)}
+        ${chipGroup('付款方式', 'pay', PAYS, e.pay)}
+        ${chipGroup('誰付的', 'by', who, e.by)}
+        ${chipGroup('怎麼分', 'split', [['both', '兩人平分'], ['0', `只算${esc(nm[0])}`], ['1', `只算${esc(nm[1])}`]], e.split)}`}
+      ${field('備註', `<input name="note" value="${esc(e.note)}" placeholder="${e.kind === 'cash' ? '換匯／提款' : '店名、買了什麼'}" class="${INPUT}">`)}
+      ${field('日期', `<input name="date" type="date" value="${e.date}" class="${INPUT}">`)}
+      ${e.fromBasket ? '<p class="text-[12.5px] text-neutral-500 dark:text-neutral-400">儲存後會清空退稅累計</p>' : ''}
+    </form>
+    ${sheetBtns('data-led-save', isNew ? '' : `data-led-del="${e.id}"`)}`);
+}
+
+function saveLedger() {
+  const form = $('#ledForm'), f = new FormData(form);
+  const yenVal = Math.round(+f.get('yen'));
+  if (!(yenVal > 0)) { toast('請輸入金額'); return; }
+  const e = { id: form.dataset.id, kind: form.dataset.kind, yen: yenVal, by: +(f.get('by') || 0), note: f.get('note').trim(),
+    date: f.get('date') || tokyo.date, ts: Date.now() };
+  if (e.kind !== 'cash') Object.assign(e, { cat: f.get('cat'), pay: f.get('pay'), split: f.get('split') });
+  const list = ledger(), old = list.findIndex((x) => x.id === e.id);
+  if (old >= 0) { e.ts = list[old].ts; list[old] = e; } else list.push(e);
+  writeJson('ledger', list);
+  if (form.dataset.basket) store.del('basket');
+  closeSheet();
+  render({ keepScroll: true, quiet: true });
+  toast(state.wallet === 'ledger' ? '已儲存' : '已記帳，可到「記帳」查看');
+}
+
+function editNames() {
+  const nm = names();
+  openSheet('分帳的兩個人', `
+    <form id="namesForm" onsubmit="return false">
+      ${field('第 1 位（通常是自己）', `<input name="n0" value="${esc(nm[0])}" class="${INPUT}">`)}
+      ${field('第 2 位', `<input name="n1" value="${esc(nm[1])}" class="${INPUT}">`)}
+    </form>
+    ${sheetBtns('data-names-save')}`);
 }
 
 /* ---------- 天氣預報（Open-Meteo JMA，日本氣象廳模型） ---------- */
@@ -1099,7 +1456,8 @@ async function fetchWeather(force) {
     wxError = true;
   }
   wxLoading = false;
-  if (state.tab !== 'calc') { render({ keepScroll: true, quiet: true }); renderPills(); }
+  renderPills();
+  if (DAY_TABS.includes(state.tab)) render({ keepScroll: true, quiet: true });
 }
 
 /* 依預報給出門準備建議 */
@@ -1178,10 +1536,428 @@ function weatherCard(d) {
     </section>`;
 }
 
+/* ---------- 票券（IndexedDB，只存在這支手機，不會上傳） ---------- */
+const DB = (() => {
+  let conn;
+  const open = () => conn ||= new Promise((res, rej) => {
+    const r = indexedDB.open('tokyo-trip', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('tickets', { keyPath: 'id' });
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  const run = (mode, fn) => open().then((db) => new Promise((res, rej) => {
+    const t = db.transaction('tickets', mode), req = fn(t.objectStore('tickets'));
+    t.oncomplete = () => res(req.result);
+    t.onerror = t.onabort = () => rej(t.error);
+  }));
+  return {
+    all: () => run('readonly', (s) => s.getAll()),
+    put: (v) => run('readwrite', (s) => s.put(v)),
+    del: (id) => run('readwrite', (s) => s.delete(id)),
+  };
+})();
+let tickets = null;   // 載入後是陣列
+let draft = null;     // 編輯中的票券
+
+async function loadTickets() {
+  try { tickets = await DB.all(); } catch (e) { tickets = []; toast('票券資料讀取失敗'); }
+  if (state.tab === 'ticket') render({ keepScroll: true, quiet: true });
+}
+
+/* 縮小截圖再存（QR Code 1800px 仍很清楚） */
+function shrinkImage(file, max = 1800) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      const x = c.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+      x.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', 0.9));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('image')); };
+    img.src = url;
+  });
+}
+
+function ticketCard({ icon, time, title, tags, t, edit }) {
+  const imgs = (t?.imgs || []).map((src, k) => `
+    <button data-view="${t.id}:${k}" class="tap shrink-0"><img src="${esc(src)}" alt="" class="h-20 w-20 rounded-xl object-cover border border-black/5 dark:border-white/10"></button>`).join('');
+  const has = t && (t.code || t.note || t.link || imgs);
+  return `
+    <article class="fade-in rounded-2xl bg-white dark:bg-neutral-900 shadow-sm p-3.5 mb-2.5">
+      <div class="flex items-start gap-2.5">
+        <span class="text-[22px] leading-none mt-0.5">${icon}</span>
+        <div class="min-w-0 flex-1">
+          <p class="text-[12px] font-semibold text-neutral-500 dark:text-neutral-400 tabular">${time || '—'}</p>
+          <h3 class="text-[15.5px] font-semibold leading-snug">${title}</h3>
+          ${tags?.length ? `<div class="flex flex-wrap gap-1.5 mt-1.5">${tags.map((x) => `<span class="rounded-full ${x.includes('還沒') ? 'bg-rose-600 text-white' : 'bg-rose-100 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300'} text-[11px] font-semibold px-2 py-0.5">${x}</span>`).join('')}</div>` : ''}
+        </div>
+        <button ${edit} class="tap shrink-0 rounded-full bg-neutral-100 dark:bg-neutral-800 text-[12px] font-semibold px-2.5 py-1">${has ? '編輯' : '＋ 加入'}</button>
+      </div>
+      ${t?.code ? `
+        <div class="mt-3 flex items-center gap-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 px-3 py-2">
+          <span class="text-[11.5px] text-neutral-500 dark:text-neutral-400 shrink-0">訂位編號</span>
+          <span class="flex-1 min-w-0 text-[17px] font-bold font-mono tracking-wide break-all select-text">${esc(t.code)}</span>
+          <button data-copy="${esc(t.code)}" class="tap shrink-0 text-[12px] font-semibold text-[#007AFF] dark:text-[#0A84FF]">複製</button>
+        </div>` : ''}
+      ${t?.note ? `<p class="mt-2 text-[13px] text-neutral-600 dark:text-neutral-300 whitespace-pre-line leading-snug">${esc(t.note)}</p>` : ''}
+      ${safeUrl(t?.link) ? `
+        <a href="${esc(safeUrl(t.link))}" target="_blank" rel="noopener noreferrer"
+          class="tap mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-[#007AFF] text-white text-[14.5px] font-semibold py-2.5">
+          🔗 開啟票券頁面 <span class="font-normal opacity-80 text-[12px] truncate max-w-[45%]">${esc(new URL(safeUrl(t.link)).hostname)}</span></a>` : ''}
+      ${imgs ? `<div class="mt-3 flex gap-2 overflow-x-auto no-scrollbar">${imgs}</div>` : ''}
+    </article>`;
+}
+
+function renderTicket() {
+  if (!tickets) return '<p class="text-center text-neutral-500 py-10">載入中…</p>';
+  const bySlot = Object.fromEntries(tickets.filter((t) => t.slot).map((t) => [t.slot, t]));
+  const slotKeys = new Set(SLOTS.map((x) => x.key));
+  const slotCard = (x) => ticketCard({ icon: x.it.icon, time: x.it.t + (x.it.tw ? '（台灣）' : ''), title: x.it.title, tags: x.it.tags,
+    t: bySlot[x.key], edit: `data-tk-slot="${esc(x.key)}"` });
+  const customCard = (t) => ticketCard({ icon: '🎫', time: t.time, title: esc(t.title), t, edit: `data-tk-id="${t.id}"` });
+  const byTime = (a, b) => (a.time || '').localeCompare(b.time || '');
+
+  const n = nextSlot();
+  const nt = n && bySlot[n.key];
+  const next = n ? `
+    <section class="fade-in rounded-3xl p-5 text-white shadow-lg mb-4" style="background:linear-gradient(135deg,${DAYS[n.di].color[0]},${DAYS[n.di].color[1]})">
+      <p class="text-[13px] font-semibold opacity-90">下一個 · ${DAYS[n.di].md}（${DAYS[n.di].wd}）${n.it.t}</p>
+      <p class="text-[22px] font-bold leading-tight mt-0.5">${n.it.icon} ${n.it.title}</p>
+      <p class="text-[15px] font-semibold opacity-95 mt-1 tabular">${untilText(minsUntil(n))}</p>
+      ${nt?.imgs?.length || safeUrl(nt?.link) ? `<div class="grid ${nt.imgs?.length && safeUrl(nt.link) ? 'grid-cols-2' : ''} gap-2 mt-3">
+        ${nt.imgs?.length ? `<button data-view="${nt.id}:0" class="tap rounded-xl bg-white/20 py-2.5 text-[15px] font-semibold">出示 QR Code</button>` : ''}
+        ${safeUrl(nt.link) ? `<a href="${esc(safeUrl(nt.link))}" target="_blank" rel="noopener noreferrer" class="tap rounded-xl bg-white/20 py-2.5 text-[15px] font-semibold text-center">🔗 票券頁面</a>` : ''}
+      </div>` : ''}
+    </section>` : '';
+
+  const todo = SLOTS.filter((x) => x.it.tags?.some((t) => t.includes('還沒')));
+  const todoCard = todo.length ? `
+    <section class="fade-in rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200/70 dark:border-rose-400/20 p-4 mb-4">
+      <p class="text-[13px] font-bold text-rose-700 dark:text-rose-300 mb-1">⚠️ 還沒處理</p>
+      ${todo.map((x) => `<p class="text-[14px] leading-relaxed">${DAYS[x.di].md} ${x.it.title} · ${x.it.tags.filter((t) => t.includes('還沒')).join('、')}</p>`).join('')}
+    </section>` : '';
+
+  const groups = DAYS.map((d, di) => {
+    const slots = SLOTS.filter((x) => x.di === di);
+    const customs = tickets.filter((t) => !t.slot && t.date === d.date).sort(byTime);
+    if (!slots.length && !customs.length) return '';
+    return `<p class="text-[13px] font-bold text-neutral-500 dark:text-neutral-400 px-1 mt-4 mb-1.5">Day ${di + 1} · ${d.md}（${d.wd}）${d.title}</p>`
+      + slots.map(slotCard).join('') + customs.map(customCard).join('');
+  }).join('');
+  /* 行程改過名稱而對不上的舊票券、沒有指定日期的票券 */
+  const others = tickets.filter((t) => (t.slot && !slotKeys.has(t.slot)) || (!t.slot && !DAYS.some((d) => d.date === t.date)));
+  const otherBlock = others.length ? `<p class="text-[13px] font-bold text-neutral-500 dark:text-neutral-400 px-1 mt-4 mb-1.5">其他</p>`
+    + others.map((t) => t.slot ? ticketCard({ icon: '🎫', time: t.slot.split('|')[0], title: esc(t.slot.split('|')[1]), t, edit: `data-tk-id="${t.id}"` }) : customCard(t)).join('') : '';
+
+  return next + todoCard + `
+    <button data-tk-new class="tap w-full rounded-xl bg-white dark:bg-neutral-900 shadow-sm text-[14.5px] font-semibold py-3 mb-1">＋ 新增其他票券（車票、門票…）</button>`
+    + groups + otherBlock + `
+    <p class="text-[11.5px] text-neutral-400 text-center mt-5 leading-relaxed">🔒 訂位編號和截圖只存在這支手機，不會上傳到網站<br>記得到「工具 → 備份」匯出一份，以免資料被清掉</p>`;
+}
+
+function editTicket({ slot, id }) {
+  const t = id ? tickets.find((x) => x.id === id) : tickets.find((x) => x.slot === slot);
+  const sl = slot ? SLOTS.find((x) => x.key === slot) : null;
+  draft = t ? { ...t, imgs: [...(t.imgs || [])] }
+    : { id: uid(), slot: slot || null, title: '', date: DAYS.some((d) => d.date === tokyo.date) ? tokyo.date : DAYS[0].date, time: '', code: '', link: '', note: '', imgs: [] };
+  const head = sl ? `<p class="text-[15px] font-semibold mb-3">${sl.it.icon} ${DAYS[sl.di].md} ${sl.it.t} · ${sl.it.title}</p>`
+    : draft.slot ? `<p class="text-[15px] font-semibold mb-3">🎫 ${esc(draft.slot.replace('|', ' · '))}</p>` : `
+      ${field('名稱', `<input name="title" value="${esc(draft.title)}" placeholder="例：Skyliner 回程、迪士尼門票" class="${INPUT}">`)}
+      <div class="grid grid-cols-2 gap-2">
+        ${field('日期', `<select name="date" class="${INPUT}">${DAYS.map((d, i) => `<option value="${d.date}" ${d.date === draft.date ? 'selected' : ''}>Day ${i + 1} · ${d.md}</option>`).join('')}
+          <option value="" ${draft.date ? '' : 'selected'}>不指定</option></select>`)}
+        ${field('時間', `<input name="time" type="time" value="${esc(draft.time)}" class="${INPUT}">`)}
+      </div>`;
+  openSheet(t ? '編輯票券' : '新增票券', `
+    <form id="tkForm" onsubmit="return false">
+      ${head}
+      ${field('訂位編號／確認碼', `<input name="code" value="${esc(draft.code)}" autocomplete="off" autocapitalize="characters" spellcheck="false" class="${INPUT} font-mono">`)}
+      ${field('票券頁面連結（當天才顯示 QR Code 的票）', `<input name="link" type="url" inputmode="url" value="${esc(draft.link)}" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false" class="${INPUT}">`)}
+      ${field('備註', `<textarea name="note" rows="2" placeholder="人數、座位、取票方式…" class="${INPUT}">${esc(draft.note)}</textarea>`)}
+      <p class="text-[12.5px] font-semibold text-neutral-500 dark:text-neutral-400 mb-1.5">QR Code／票券截圖</p>
+      <div id="draftImgs" class="flex flex-wrap gap-2">${draftImgs()}</div>
+    </form>
+    ${sheetBtns('data-tk-save', t ? 'data-tk-del' : '')}`);
+}
+
+function draftImgs() {
+  return draft.imgs.map((src, k) => `
+    <div class="relative"><img src="${esc(src)}" alt="" class="h-20 w-20 rounded-xl object-cover">
+      <button data-draft-del="${k}" class="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-neutral-800 text-white text-[12px] font-bold" aria-label="移除">✕</button></div>`).join('') + `
+    <label class="tap h-20 w-20 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 flex flex-col items-center justify-center text-neutral-500 text-[12px] font-semibold cursor-pointer">
+      <span class="text-[22px] leading-none">＋</span>加入截圖
+      <input id="tkFile" type="file" accept="image/*" multiple class="hidden"></label>`;
+}
+
+async function saveTicket() {
+  const f = new FormData($('#tkForm'));
+  if (!draft.slot) { draft.title = (f.get('title') || '').trim() || '未命名票券'; draft.date = f.get('date') || ''; draft.time = f.get('time') || ''; }
+  draft.code = f.get('code').trim();
+  draft.note = f.get('note').trim();
+  const link = f.get('link').trim();
+  if (link && !safeUrl(link)) { toast('連結格式不對，請貼上 https:// 開頭的網址'); return; }
+  draft.link = safeUrl(link) || '';
+  draft.updated = Date.now();
+  try {
+    /* 行程內建的欄位清空時直接刪掉紀錄 */
+    if (draft.slot && !draft.code && !draft.note && !draft.link && !draft.imgs.length) await DB.del(draft.id);
+    else await DB.put(draft);
+    tickets = await DB.all();
+  } catch (e) { toast('儲存失敗（空間不足？）'); return; }
+  navigator.storage?.persist?.().catch(() => {});
+  closeSheet();
+  render({ keepScroll: true, quiet: true });
+  toast('已儲存在這支手機');
+}
+
+/* ---------- 工具 ---------- */
+const NEARBY = [
+  ['🏪', '便利商店', 'コンビニ'], ['🚻', '廁所', 'トイレ'], ['🧳', '置物櫃', 'コインロッカー'], ['🏧', 'ATM', 'セブン銀行 ATM'],
+  ['💊', '藥妝店', 'ドラッグストア'], ['☕', '咖啡廳', 'カフェ'], ['🍜', '拉麵', 'ラーメン'], ['👮', '派出所', '交番'],
+];
+
+/* 公開的緊急電話（出發前請再到外交部領事事務局網站核對） */
+const SOS = [
+  ['🚓', '警察', '110'],
+  ['🚑', '救護車・消防', '119'],
+  ['🩺', '急病諮詢（東京，不確定要不要叫救護車時）', '#7119'],
+  ['🗾', 'Japan Visitor Hotline（觀光局 24 小時，可中文）', '050-3816-2787'],
+  ['🇹🇼', '台北駐日經濟文化代表處 急難救助', '080-6557-8796'],
+  ['☎️', '外交部 旅外急難救助專線（從日本撥）', '001-010-800-0885-0885'],
+];
+const ME_FIELDS = [
+  ['hotelAddr', '飯店日文地址（給司機看）', '東京都台東区…'],
+  ['hotelTel', '飯店電話', '03-…'],
+  ['ins', '保險 海外急難／理賠專線', '保險公司＋電話'],
+  ['card1', '信用卡掛失電話 1', '銀行＋電話'],
+  ['card2', '信用卡掛失電話 2', '銀行＋電話'],
+  ['memo', '其他（血型、過敏、保單號碼…）', ''],
+];
+const me = () => readJson('me');
+
+const PACK = [
+  ['事先準備', ['網路（eSIM）', '日圓現金', '信用卡', '護照', 'Visit Japan Web（QR Code）', '保險（旅平險＋不便險）', 'PayPay', 'Suica', '回程 Skyliner 車票']],
+  ['隨身', ['行動電源', '充電器＋充電線', '雨傘']],
+  ['行李', ['換洗衣物＋襪子', '髒衣袋', '塑膠袋', '盥洗用具', '毛巾', '牙刷', '牙膏', '刮鬍刀', '口罩', '梳子']],
+];
+
+/* 購物清單可以對應到行程中的店家，逛到那家店時會提醒 */
+const ALL_SHOPS = DAYS.flatMap((d, di) => d.items.flatMap((it) => (it.shops?.list || [])
+  .filter((s) => s.flag !== 'drop').map((s) => ({ id: `${d.date}|${s.q}`, di, name: s.name }))));
+const wishes = () => readArr('wish');
+function wishBadge(date, s) {
+  const w = wishes().filter((x) => !x.done && x.shops?.includes(`${date}|${s.q}`));
+  return w.length ? `<p class="mt-1.5 inline-flex flex-wrap gap-1 rounded-lg bg-violet-50 dark:bg-violet-400/10 text-violet-700 dark:text-violet-300 px-2 py-1 text-[12.5px] font-semibold">🛒 購物清單：${w.map((x) => esc(x.name)).join('、')}</p>` : '';
+}
+
+function renderTools() {
+  const m = me(), di = todayIdx >= 0 ? todayIdx : 0, d = DAYS[di];
+
+  const nearby = card('📍 搜尋附近', `
+    <div class="grid grid-cols-4 gap-2">${NEARBY.map(([i, t, q]) => `
+      <a href="${searchUrl(q)}" target="_blank" rel="noopener" class="tap flex flex-col items-center gap-0.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 py-2.5">
+        <span class="text-[22px]">${i}</span><span class="text-[12px] font-semibold">${t}</span></a>`).join('')}</div>
+    <p class="text-[11.5px] text-neutral-400 mt-2">用 Google Maps 搜尋你目前位置附近；7-Eleven ATM 可用台灣金融卡跨國提款</p>`);
+
+  const dests = [...new Map(d.legs.filter((l) => l.d && l.d !== P.hotel).map((l) => [l.d, l])).values()];
+  const taxi = card('🚕 給司機看', `
+    <button data-big="hotel" class="tap w-full flex items-center gap-3 rounded-xl bg-rose-600 text-white px-3.5 py-3 text-left mb-2">
+      <span class="text-[22px]">🏨</span>
+      <span class="flex-1 min-w-0"><span class="block text-[15px] font-bold">回飯店</span>
+        <span class="block text-[12px] opacity-90 truncate">${esc(P.hotel)}${m.hotelAddr ? '' : '・還沒填地址'}</span></span>
+      <span class="text-[12.5px] font-semibold opacity-90">放大 ›</span>
+    </button>
+    <p class="text-[12px] text-neutral-500 dark:text-neutral-400 mt-3 mb-1.5">Day ${di + 1} 的目的地</p>
+    <div class="flex flex-wrap gap-1.5">${dests.map((l) => `
+      <button data-big="${l.id}" class="tap rounded-full bg-neutral-100 dark:bg-neutral-800 px-2.5 py-1 text-[13px] font-semibold">${l.to}</button>`).join('')}</div>`);
+
+  const mine = ME_FIELDS.filter(([k]) => m[k]).map(([k, label]) => {
+    const tel = k !== 'hotelAddr' && phoneIn(m[k]);
+    return `<li class="py-2 flex items-center gap-2">
+      <span class="flex-1 min-w-0"><span class="block text-[11.5px] text-neutral-500 dark:text-neutral-400">${label}</span>
+        <span class="block text-[14px] font-semibold whitespace-pre-line break-words select-text">${esc(m[k])}</span></span>
+      ${tel ? `<a href="${telHref(tel)}" class="tap shrink-0 rounded-full bg-emerald-600 text-white text-[12.5px] font-semibold px-3 py-1.5">撥打</a>` : ''}</li>`;
+  }).join('');
+  const sos = card('🆘 緊急聯絡', `
+    <ul class="divide-y divide-black/5 dark:divide-white/10">${SOS.map(([i, t, n]) => `
+      <li class="py-2 flex items-center gap-2.5">
+        <span class="text-[18px]">${i}</span>
+        <span class="flex-1 min-w-0"><span class="block text-[13.5px] leading-snug">${t}</span><span class="block text-[15px] font-bold tabular">${n}</span></span>
+        <a href="${telHref(n)}" class="tap shrink-0 rounded-full bg-emerald-600 text-white text-[12.5px] font-semibold px-3 py-1.5">撥打</a></li>`).join('')}</ul>
+    <div class="mt-2 pt-2 border-t border-black/5 dark:border-white/10">
+      <div class="flex items-center justify-between"><p class="text-[13px] font-bold">我的資料 <span class="font-normal text-[11.5px] text-neutral-400">🔒 只存在這支手機</span></p>${smallBtn('data-me-edit', mine ? '編輯' : '＋ 填寫')}</div>
+      ${mine ? `<ul class="divide-y divide-black/5 dark:divide-white/10">${mine}</ul>` : '<p class="text-[12.5px] text-neutral-500 dark:text-neutral-400 mt-1">填入飯店地址電話、保險和信用卡掛失電話，出事時不用翻 Email</p>'}
+    </div>`);
+
+  const done = readJson('pack'), extra = readArr('pack-extra');
+  const groups = [...PACK, ...(extra.length ? [['自己加的', extra]] : [])];
+  const all = groups.flatMap((g) => g[1]), n = all.filter((x) => done[x]).length;
+  const packRow = (x, custom) => `
+    <li class="flex items-center gap-2">
+      <button data-pack="${esc(x)}" class="tap flex-1 flex items-center gap-2.5 py-1.5 text-left">
+        <span class="w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center text-[12px] text-white ${done[x] ? 'bg-emerald-500 border-emerald-500' : 'border-neutral-300 dark:border-neutral-600'}">${done[x] ? '✓' : ''}</span>
+        <span class="text-[14.5px] ${done[x] ? 'line-through text-neutral-400' : ''}">${esc(x)}</span></button>
+      ${custom ? `<button data-pack-del="${esc(x)}" class="tap text-neutral-400 px-2" aria-label="刪除">✕</button>` : ''}</li>`;
+  const pack = `
+    <details class="fade-in rounded-2xl bg-white dark:bg-neutral-900 shadow-sm p-4 mb-4 group" ${tokyo.date < DAYS[0].date || n < all.length ? 'open' : ''}>
+      <summary class="list-none cursor-pointer flex items-center justify-between">
+        <h3 class="text-[15px] font-bold">✅ 出發前清單 <span class="font-normal text-[12.5px] text-neutral-500 dark:text-neutral-400">${n}/${all.length}</span></h3>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-neutral-400 transition-transform group-open:rotate-90"><path d="m9 6 6 6-6 6"/></svg>
+      </summary>
+      <div class="h-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden mt-2.5"><div class="h-full bg-emerald-500 rounded-full" style="width:${n / all.length * 100}%"></div></div>
+      ${groups.map(([g, items], gi) => `
+        <p class="text-[12px] font-bold text-neutral-500 dark:text-neutral-400 mt-3">${g}</p>
+        <ul>${items.map((x) => packRow(x, gi >= PACK.length)).join('')}</ul>`).join('')}
+      <div class="flex gap-2 mt-3">
+        <input id="packNew" placeholder="新增項目" class="${INPUT} !py-2 !text-[15px]">
+        <button data-pack-add class="tap shrink-0 rounded-xl bg-rose-600 text-white text-[14px] font-semibold px-4">加入</button>
+      </div>
+    </details>`;
+
+  const ws = wishes(), left = ws.filter((x) => !x.done);
+  const budget = left.reduce((a, x) => a + (+x.budget || 0), 0);
+  const shopName = (id) => { const s = ALL_SHOPS.find((x) => x.id === id); return s ? `D${s.di + 1} ${s.name}` : null; };
+  const wish = card(`🛒 購物清單 <span class="font-normal text-[12.5px] text-neutral-500 dark:text-neutral-400">${ws.length ? `還有 ${left.length} 項${budget ? `・預算 ${yen(budget)}` : ''}` : ''}</span>`,
+    ws.length ? `<ul class="divide-y divide-black/5 dark:divide-white/10">${[...left, ...ws.filter((x) => x.done)].map((x) => `
+      <li class="flex items-start gap-2.5 py-2">
+        <button data-wish-done="${x.id}" class="tap mt-0.5 w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center text-[12px] text-white ${x.done ? 'bg-emerald-500 border-emerald-500' : 'border-neutral-300 dark:border-neutral-600'}" aria-label="買到了">${x.done ? '✓' : ''}</button>
+        <button data-wish-edit="${x.id}" class="tap flex-1 min-w-0 text-left">
+          <span class="block text-[14.5px] font-semibold ${x.done ? 'line-through text-neutral-400' : ''}">${esc(x.name)}${+x.budget ? ` <span class="font-normal text-[12.5px] text-neutral-500 tabular">${yen(x.budget)}</span>` : ''}</span>
+          ${x.shops?.length ? `<span class="block text-[12px] text-violet-700 dark:text-violet-300 mt-0.5">${x.shops.map(shopName).filter(Boolean).map(esc).join('・')}</span>` : ''}
+          ${x.note ? `<span class="block text-[12px] text-neutral-500 dark:text-neutral-400 mt-0.5">${esc(x.note)}</span>` : ''}
+        </button></li>`).join('')}</ul>`
+      : '<p class="text-[12.5px] text-neutral-500 dark:text-neutral-400">記下想買的東西和可以買的店，逛到那家店時，行程的店家清單會提醒你</p>',
+    smallBtn('data-wish-edit=""', '＋ 新增'));
+
+  const cal = card('📅 加入手機行事曆', `
+    <p class="text-[13px] text-neutral-600 dark:text-neutral-300 leading-snug">把所有預約、航班和重要時間點（例如 20:25 往樂園出口走）匯出成行事曆檔，手機會在前 30 分鐘提醒。</p>
+    <button data-ics class="tap w-full mt-3 rounded-xl bg-[#007AFF] text-white text-[14.5px] font-semibold py-2.5">下載行事曆檔（.ics）</button>
+    <p class="text-[11.5px] text-neutral-400 mt-2">iPhone 若從主畫面開啟沒反應，請改用 Safari 開這個網頁再按一次</p>`);
+
+  const backup = card('🔒 本機資料備份', `
+    <p class="text-[13px] text-neutral-600 dark:text-neutral-300 leading-snug">票券、記帳、清單都只存在這支手機。換手機、清除 Safari 資料前先匯出；也可以把備份檔傳給旅伴匯入。</p>
+    <div class="grid grid-cols-2 gap-2 mt-3">
+      <button data-backup-export class="tap rounded-xl bg-rose-600 text-white text-[14px] font-semibold py-2.5">匯出備份</button>
+      <label class="tap rounded-xl bg-neutral-100 dark:bg-neutral-800 text-[14px] font-semibold py-2.5 text-center cursor-pointer">匯入備份
+        <input id="backupFile" type="file" accept="application/json,.json" class="hidden"></label>
+    </div>
+    <p class="text-[11.5px] text-neutral-400 mt-2">iPhone 請從「加入主畫面」的圖示開啟，資料比較不會被系統清掉</p>`);
+
+  return nearby + taxi + sos + pack + wish + cal + backup;
+}
+
+function showBig(id) {
+  const m = me();
+  if (id === 'hotel') {
+    openFull(`
+      <p class="text-[18px] font-semibold text-neutral-500">ここへ行ってください</p>
+      <p class="text-[14px] text-neutral-400 mb-5">請帶我到這裡</p>
+      <p class="text-[36px] font-bold leading-tight text-center">${esc(P.hotel)}</p>
+      ${m.hotelAddr ? `<p class="text-[24px] font-semibold leading-snug text-center mt-4 whitespace-pre-line">${esc(m.hotelAddr)}</p>` : '<p class="text-[14px] text-rose-600 mt-4">到「緊急聯絡 → 我的資料」填入地址會更清楚</p>'}
+      ${m.hotelTel ? `<p class="text-[20px] font-semibold tabular mt-3">☎ ${esc(m.hotelTel)}</p>` : ''}
+      <a href="${mapsUrl(P.hotel, 'driving')}" target="_blank" rel="noopener" class="mt-8 rounded-xl bg-[#007AFF] text-white text-[15px] font-semibold px-5 py-3">Google Maps</a>`);
+    return;
+  }
+  const l = DAYS.flatMap((d) => d.legs).find((x) => x.id === id);
+  if (!l) return;
+  openFull(`
+    <p class="text-[18px] font-semibold text-neutral-500">ここへ行ってください</p>
+    <p class="text-[14px] text-neutral-400 mb-5">請帶我到這裡</p>
+    <p class="text-[40px] font-bold leading-tight text-center">${esc(l.d)}</p>
+    <p class="text-[16px] text-neutral-500 mt-3">${l.to}</p>
+    <a href="${mapsUrl(l.d, 'driving')}" target="_blank" rel="noopener" class="mt-8 rounded-xl bg-[#007AFF] text-white text-[15px] font-semibold px-5 py-3">Google Maps</a>`);
+}
+
+function editMe() {
+  const m = me();
+  openSheet('我的緊急資料', `
+    <form id="meForm" onsubmit="return false">
+      ${ME_FIELDS.map(([k, label, ph]) => field(label, k === 'hotelAddr' || k === 'memo'
+        ? `<textarea name="${k}" rows="2" placeholder="${ph}" class="${INPUT}">${esc(m[k])}</textarea>`
+        : `<input name="${k}" value="${esc(m[k])}" placeholder="${ph}" class="${INPUT}">`)).join('')}
+      <p class="text-[12px] text-neutral-500 dark:text-neutral-400">🔒 只存在這支手機，不會上傳到網站</p>
+    </form>
+    ${sheetBtns('data-me-save')}`);
+}
+
+function editWish(id) {
+  const w = wishes().find((x) => x.id === id) || { id: uid(), name: '', budget: '', note: '', shops: [] };
+  const shopList = DAYS.map((d, di) => {
+    const s = ALL_SHOPS.filter((x) => x.di === di);
+    return s.length ? `<p class="text-[12px] font-bold text-neutral-500 dark:text-neutral-400 mt-2 mb-1">Day ${di + 1} · ${d.md}</p>` + s.map((x) => `
+      <label class="flex items-center gap-2.5 py-1.5 cursor-pointer">
+        <input type="checkbox" name="shops" value="${esc(x.id)}" ${w.shops?.includes(x.id) ? 'checked' : ''} class="w-5 h-5 accent-rose-600">
+        <span class="text-[14px]">${x.name}</span></label>`).join('') : '';
+  }).join('');
+  openSheet(wishes().some((x) => x.id === id) ? '編輯購物清單' : '新增購物清單', `
+    <form id="wishForm" data-id="${w.id}" onsubmit="return false">
+      ${field('想買什麼', `<input name="name" value="${esc(w.name)}" placeholder="例：Supreme Box Logo 帽T" class="${INPUT}">`)}
+      ${field('預算（日圓，選填）', `<input name="budget" type="number" inputmode="numeric" value="${esc(w.budget)}" class="${INPUT}">`)}
+      ${field('備註', `<input name="note" value="${esc(w.note)}" placeholder="尺寸、顏色、幫誰買…" class="${INPUT}">`)}
+      <p class="text-[12.5px] font-semibold text-neutral-500 dark:text-neutral-400">可以在哪買（可複選）</p>
+      <div class="rounded-xl bg-white dark:bg-neutral-900 px-3 pb-2">${shopList}</div>
+    </form>
+    ${sheetBtns('data-wish-save', wishes().some((x) => x.id === id) ? `data-wish-del="${w.id}"` : '')}`);
+}
+
+/* 行事曆檔：時間一律換成 UTC，手機會自動轉成當地時間 */
+function buildIcs() {
+  const pad = (n) => String(n).padStart(2, '0');
+  const utc = (date, min) => {
+    const [y, m, d] = date.split('-').map(Number), t = new Date(Date.UTC(y, m - 1, d, 0, min - 540));
+    return `${t.getUTCFullYear()}${pad(t.getUTCMonth() + 1)}${pad(t.getUTCDate())}T${pad(t.getUTCHours())}${pad(t.getUTCMinutes())}00Z`;
+  };
+  const txt = (s) => String(s).replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, (c) => '\\' + c);
+  const stamp = utc(tokyo.date, tokyo.min);
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//tokyo-trip//zh-TW', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:東京旅行'];
+  DAYS.forEach((d) => {
+    const sc = schedule(d);
+    d.items.forEach((it, i) => {
+      if (!(isTicket(it) || it.remind)) return;
+      const desc = [it.note, ...(it.tags || [])].filter(Boolean).join('\n');
+      lines.push('BEGIN:VEVENT', `UID:${d.date}-${i}@tokyo-trip`, `DTSTAMP:${stamp}`,
+        `DTSTART:${utc(d.date, sc[i].start)}`, `DTEND:${utc(d.date, Math.max(sc[i].end, sc[i].start + 15))}`,
+        `SUMMARY:${txt(`${it.icon} ${it.title}`)}`, ...(desc ? [`DESCRIPTION:${txt(desc)}`] : []),
+        'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${txt(it.title)}`, `TRIGGER:-PT${it.alarm ?? 30}M`, 'END:VALARM', 'END:VEVENT');
+    });
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+/* 備份：localStorage（天氣快取除外）＋ 票券 */
+async function exportBackup() {
+  const ls = {};
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k !== 'wx') ls[k] = localStorage.getItem(k); } } catch (e) {}
+  const data = { app: 'tokyo-trip', v: 1, at: new Date().toISOString(), ls, tickets: tickets || await DB.all() };
+  await saveFile(`tokyo-backup-${tokyo.date.replace(/-/g, '')}.json`, JSON.stringify(data), 'application/json', true);
+}
+
+async function importBackup(file) {
+  let data;
+  try { data = JSON.parse(await file.text()); } catch (e) { data = null; }
+  if (data?.app !== 'tokyo-trip') { toast('這不是東京旅行的備份檔'); return; }
+  if (!confirm(`要用 ${new Date(data.at).toLocaleString('zh-TW', { hour12: false })} 的備份覆蓋這支手機的資料嗎？`)) return;
+  Object.entries(data.ls || {}).forEach(([k, v]) => store.set(k, v));
+  try { for (const t of data.tickets || []) await DB.put(t); tickets = await DB.all(); } catch (e) { toast('票券還原失敗'); return; }
+  state.wallet = store.get('wallet') === 'ledger' ? 'ledger' : 'calc';
+  render({ keepScroll: true, quiet: true });
+  toast('已還原備份');
+}
+
 /* ---------- 主渲染 ---------- */
+const VIEWS = { plan: ['行程', renderPlan], route: ['交通', renderRoute], ticket: ['票券', renderTicket], calc: ['錢包', renderWallet], tools: ['工具', renderTools] };
+const DAY_TABS = ['plan', 'route'];   // 有日期列、可左右滑動切換天數的分頁
+
 function render(opts = {}) {
-  $('#pageTitle').textContent = { plan: '行程', route: '交通', calc: '匯率換算' }[state.tab];
-  $('#dayPills').classList.toggle('hidden', state.tab === 'calc');
+  const [title, view] = VIEWS[state.tab];
+  $('#pageTitle').textContent = title;
+  $('#dayPills').classList.toggle('hidden', !DAY_TABS.includes(state.tab));
   document.querySelectorAll('.tab-btn').forEach((b) => {
     const on = b.dataset.tab === state.tab;
     b.classList.toggle('text-rose-600', on);
@@ -1190,7 +1966,7 @@ function render(opts = {}) {
   });
   if (!opts.quiet) renderPills();
   $('#view').classList.toggle('quiet', !!opts.quiet);
-  $('#view').innerHTML = { plan: renderPlan, route: renderRoute, calc: renderCalc }[state.tab]();
+  $('#view').innerHTML = view();
   if (state.tab === 'calc') {
     updateCalc();
     if (!opts.quiet) fetchRate();
@@ -1215,6 +1991,101 @@ document.addEventListener('click', (e) => {
 
   const tab = e.target.closest('[data-tab]');
   if (tab) { if (tab.dataset.tab !== state.tab) { state.tab = tab.dataset.tab; render(); } else window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+
+  const act = (sel) => e.target.closest(sel);
+  const quiet = () => render({ keepScroll: true, quiet: true });
+  let el;
+
+  /* 編輯面板 */
+  if (act('[data-sheet-close]')) { closeSheet(); return; }
+  if ((el = act('[data-draft-del]'))) { draft.imgs.splice(+el.dataset.draftDel, 1); $('#draftImgs').innerHTML = draftImgs(); return; }
+  if (act('[data-tk-save]')) { saveTicket(); return; }
+  if (act('[data-tk-del]')) {
+    if (!confirm('確定刪除這張票券的資料？')) return;
+    DB.del(draft.id).then(DB.all).then((t) => { tickets = t; closeSheet(); quiet(); });
+    return;
+  }
+  if (act('[data-led-save]')) { saveLedger(); return; }
+  if ((el = act('[data-led-del]'))) {
+    if (!confirm('確定刪除這筆紀錄？')) return;
+    writeJson('ledger', ledger().filter((x) => x.id !== el.dataset.ledDel));
+    closeSheet(); quiet(); return;
+  }
+  if (act('[data-names-save]')) {
+    const f = new FormData($('#namesForm'));
+    writeJson('ledger-cfg', { names: [f.get('n0').trim() || '我', f.get('n1').trim() || '旅伴'] });
+    closeSheet(); quiet(); return;
+  }
+  if (act('[data-me-save]')) {
+    const f = new FormData($('#meForm'));
+    writeJson('me', Object.fromEntries(ME_FIELDS.map(([k]) => [k, (f.get(k) || '').trim()])));
+    closeSheet(); quiet(); toast('已儲存在這支手機'); return;
+  }
+  if (act('[data-wish-save]')) {
+    const form = $('#wishForm'), f = new FormData(form);
+    const name = f.get('name').trim();
+    if (!name) { toast('請輸入想買什麼'); return; }
+    const list = wishes(), old = list.find((x) => x.id === form.dataset.id);
+    const w = { id: form.dataset.id, name, budget: f.get('budget'), note: f.get('note').trim(), shops: f.getAll('shops'), done: old?.done || false };
+    writeJson('wish', old ? list.map((x) => (x.id === w.id ? w : x)) : [...list, w]);
+    closeSheet(); quiet(); return;
+  }
+  if ((el = act('[data-wish-del]'))) { writeJson('wish', wishes().filter((x) => x.id !== el.dataset.wishDel)); closeSheet(); quiet(); return; }
+
+  /* 票券 */
+  if ((el = act('[data-tk-slot]'))) { editTicket({ slot: el.dataset.tkSlot }); return; }
+  if ((el = act('[data-tk-id]'))) { editTicket({ id: el.dataset.tkId }); return; }
+  if (act('[data-tk-new]')) { editTicket({}); return; }
+  if ((el = act('[data-view]'))) {
+    const [id, k] = el.dataset.view.split(':'), src = tickets?.find((t) => t.id === id)?.imgs?.[+k];
+    if (src) openFull(`<img src="${esc(src)}" alt="" class="max-w-full max-h-[85vh] object-contain"><p class="text-[13px] text-neutral-400 mt-3">記得把螢幕亮度調高</p>`);
+    return;
+  }
+  if ((el = act('[data-copy]'))) {
+    navigator.clipboard?.writeText(el.dataset.copy).then(() => toast('已複製'), () => toast('無法複製，請長按選取'));
+    return;
+  }
+
+  /* 錢包 */
+  if ((el = act('[data-wallet]'))) { state.wallet = el.dataset.wallet; store.set('wallet', state.wallet); quiet(); return; }
+  if ((el = act('[data-led-new]'))) { editLedger(el.dataset.ledNew); return; }
+  if ((el = act('[data-led-edit]'))) { editLedger(null, ledger().find((x) => x.id === el.dataset.ledEdit)); return; }
+  if (act('[data-led-names]')) { editNames(); return; }
+  if (act('[data-basket-add]')) {
+    const v = Math.round(calcAmounts().afterDisc);
+    if (!v) { toast('先輸入標價'); return; }
+    const b = basket(); b.items.push(v); writeJson('basket', b);
+    quiet(); toast(`已加入 ${yen(v)}`); return;
+  }
+  if ((el = act('[data-basket-del]'))) { const b = basket(); b.items.splice(+el.dataset.basketDel, 1); writeJson('basket', b); quiet(); return; }
+  if (act('[data-basket-clear]')) { store.del('basket'); quiet(); return; }
+
+  /* 工具 */
+  if ((el = act('[data-big]'))) { showBig(el.dataset.big); return; }
+  if (act('[data-me-edit]')) { editMe(); return; }
+  if ((el = act('[data-pack]'))) {
+    const done = readJson('pack'), k = el.dataset.pack;
+    done[k] = !done[k]; writeJson('pack', done); quiet(); return;
+  }
+  if (act('[data-pack-add]')) {
+    const v = $('#packNew').value.trim(), list = readArr('pack-extra');
+    if (v && !list.includes(v) && !PACK.some((g) => g[1].includes(v))) { writeJson('pack-extra', [...list, v]); quiet(); }
+    return;
+  }
+  if ((el = act('[data-pack-del]'))) { writeJson('pack-extra', readArr('pack-extra').filter((x) => x !== el.dataset.packDel)); quiet(); return; }
+  if ((el = act('[data-wish-edit]'))) { editWish(el.dataset.wishEdit); return; }
+  if ((el = act('[data-wish-done]'))) {
+    writeJson('wish', wishes().map((x) => (x.id === el.dataset.wishDone ? { ...x, done: !x.done } : x)));
+    quiet(); return;
+  }
+  if (act('[data-ics]')) { saveFile('tokyo-trip.ics', buildIcs(), 'text/calendar', false); return; }
+  if (act('[data-backup-export]')) { exportBackup(); return; }
+
+  /* 行程：今天要帶 */
+  if ((el = act('[data-bring]'))) {
+    const k = 'bring-' + DAYS[state.day].date, done = readJson(k);
+    done[el.dataset.bring] = !done[el.dataset.bring]; writeJson(k, done); quiet(); return;
+  }
 
   const pct = e.target.closest('[data-pct]');
   if (pct) { saveCalc({ pct: +pct.dataset.pct }); render({ keepScroll: true, quiet: true }); return; }
@@ -1279,10 +2150,24 @@ document.addEventListener('input', (e) => {
   const id = e.target.id;
   if (id === 'calcPrice') saveCalc({ price: e.target.value });
   else if (id === 'calcPct') saveCalc({ pct: e.target.value });
+  else if (id === 'calcTwd') saveCalc({ twd: e.target.value });
+  else if (id === 'basketStore') { writeJson('basket', { ...basket(), store: e.target.value }); return; }
   else return;
   updateCalc();
 });
-document.addEventListener('change', (e) => {
+document.addEventListener('change', async (e) => {
+  if (e.target.id === 'tkFile') {
+    const files = [...e.target.files];
+    for (const f of files) { try { draft.imgs.push(await shrinkImage(f)); } catch (err) { toast('有一張圖片讀不到'); } }
+    $('#draftImgs').innerHTML = draftImgs();
+    return;
+  }
+  if (e.target.id === 'backupFile') {
+    const f = e.target.files[0];
+    if (f) await importBackup(f);
+    e.target.value = '';
+    return;
+  }
   const k = e.target.dataset?.calc;
   if (!k) return;
   saveCalc({ [k]: e.target.checked });
@@ -1297,7 +2182,7 @@ main.addEventListener('touchstart', (e) => { const t = e.touches[0]; sx = t.clie
 main.addEventListener('touchend', (e) => {
   const t = e.changedTouches[0];
   const dx = t.clientX - sx, dy = t.clientY - sy;
-  if (state.tab !== 'calc' && Date.now() - st < 600 && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) setDay(state.day + (dx < 0 ? 1 : -1));
+  if (DAY_TABS.includes(state.tab) && Date.now() - st < 600 && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) setDay(state.day + (dx < 0 ? 1 : -1));
 }, { passive: true });
 
 /* 回到前景時更新「現在」標示 */
@@ -1305,32 +2190,22 @@ function refreshClock() {
   tokyo = tokyoNow();
   todayIdx = DAYS.findIndex((d) => d.date === tokyo.date);
   renderStatus();
-  if (state.tab !== 'calc') render({ keepScroll: true, quiet: true });
+  /* 有輸入框的分頁不重繪，避免打字到一半被打斷 */
+  if ([...DAY_TABS, 'ticket'].includes(state.tab) && !$('#sheet')) render({ keepScroll: true, quiet: true });
   fetchWeather();
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshClock(); });
 setInterval(() => { if (!document.hidden && !SIM && state.tab === 'plan' && state.day === todayIdx) refreshClock(); }, 60000);
 
-/* 主畫面圖示（iOS 需要 PNG，這裡用 canvas 產生） */
-(function makeIcon() {
-  try {
-    const c = document.createElement('canvas'); c.width = c.height = 180;
-    const x = c.getContext('2d');
-    const g = x.createLinearGradient(0, 0, 180, 180);
-    g.addColorStop(0, '#F43F5E'); g.addColorStop(1, '#FB923C');
-    x.fillStyle = g; x.fillRect(0, 0, 180, 180);
-    x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.font = 'bold 64px -apple-system, "PingFang TC", sans-serif';
-    x.fillText('東京', 90, 78);
-    x.font = '600 26px -apple-system, sans-serif';
-    x.globalAlpha = .9; x.fillText('10/12 – 10/17', 90, 130);
-    $('#touchIcon').href = c.toDataURL('image/png');
-  } catch (e) {}
-})();
+/* 離線快取（sw.js）；本機直接開檔案時不支援 */
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 
 renderStatus();
 render();
 fetchWeather();
+loadTickets();
 </script>
 </body>
 </html>
