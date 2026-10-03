@@ -95,9 +95,12 @@
         <p id="status" class="text-[13px] font-semibold text-rose-600 dark:text-rose-400"></p>
         <h1 id="pageTitle" class="text-[28px] leading-tight font-bold tracking-tight">行程</h1>
       </div>
-      <p class="text-[12px] text-neutral-500 dark:text-neutral-400 text-right leading-snug pb-1">
-        2026/10/12 – 10/17<br>6 天 5 夜
-      </p>
+      <div class="flex items-end gap-2.5 pb-1">
+        <p class="text-[12px] text-neutral-500 dark:text-neutral-400 text-right leading-snug">
+          2026/10/12 – 10/17<br>6 天 5 夜
+        </p>
+        <button data-tab="help" class="tap w-8 h-8 rounded-full bg-white dark:bg-neutral-800 shadow-sm text-rose-600 dark:text-rose-400 text-[16px] font-bold" aria-label="使用說明">?</button>
+      </div>
     </div>
     <div id="dayPills" class="flex gap-2 overflow-x-auto no-scrollbar px-4 pb-3"></div>
   </header>
@@ -1848,7 +1851,15 @@ function renderTools() {
     </div>
     <p class="text-[11.5px] text-neutral-400 mt-2">iPhone 請從「加入主畫面」的圖示開啟，資料比較不會被系統清掉</p>`);
 
-  return nearby + taxi + sos + pack + wish + cal + backup;
+  const help = `
+    <button data-tab="help" class="tap fade-in w-full flex items-center gap-3 rounded-2xl bg-white dark:bg-neutral-900 shadow-sm p-3.5 mb-4 text-left">
+      <span class="text-[22px]">📖</span>
+      <span class="flex-1 min-w-0"><span class="block text-[15px] font-semibold">使用說明</span>
+        <span class="block text-[12.5px] text-neutral-500 dark:text-neutral-400">加入主畫面、各分頁怎麼用、備份還原</span></span>
+      <span class="text-[12.5px] font-semibold text-neutral-500 dark:text-neutral-400">›</span>
+    </button>`;
+
+  return help + nearby + taxi + sos + pack + wish + cal + backup;
 }
 
 function showBig(id) {
@@ -1950,8 +1961,262 @@ async function importBackup(file) {
   toast('已還原備份');
 }
 
+/* ---------- 使用說明 ---------- */
+const shot = (src, cap) => `
+  <figure class="my-3">
+    <img src="guide/${src}" alt="${cap}" loading="lazy" class="block w-full max-w-[360px] mx-auto rounded-2xl border border-black/10 dark:border-white/10 shadow-sm bg-[#F2F2F7]">
+    <figcaption class="text-[12px] text-neutral-500 dark:text-neutral-400 text-center mt-1.5 leading-snug">${cap}</figcaption>
+  </figure>`;
+const steps = (list) => `<ol class="space-y-2 mt-2">${list.map((t, i) => `
+  <li class="flex gap-2.5"><span class="shrink-0 w-6 h-6 rounded-full bg-rose-600 text-white text-[12.5px] font-bold flex items-center justify-center">${i + 1}</span>
+    <span class="flex-1 min-w-0 text-[14px] leading-relaxed pt-px">${t}</span></li>`).join('')}</ol>`;
+const bullets = (list) => `<ul class="space-y-1.5 mt-2 text-[14px] leading-relaxed">${list.map((t) => `
+  <li class="flex gap-2"><span class="text-neutral-400">•</span><span class="flex-1 min-w-0">${t}</span></li>`).join('')}</ul>`;
+const subHead = (t) => `<h3 class="text-[15px] font-bold mt-5 mb-1">${t}</h3>`;
+const noteBox = (t) => `<p class="mt-3 rounded-xl bg-amber-50 dark:bg-amber-400/10 text-amber-900 dark:text-amber-100/90 text-[13px] leading-relaxed px-3 py-2">${t}</p>`;
+const goTab = (tab, text) => `<button data-tab="${tab}" class="tap mt-4 w-full rounded-xl bg-rose-50 dark:bg-rose-400/15 text-rose-600 dark:text-rose-300 text-[14px] font-semibold py-2.5">前往「${text}」›</button>`;
+
+/* iPhone 畫面示意圖（Safari 的畫面無法截圖，用簡化的圖示意） */
+const HI = 'ring-2 ring-rose-500 bg-rose-50 text-rose-700 font-bold';
+const phone = (inner, cap) => `
+  <figure class="shrink-0 w-[148px]">
+    <div class="relative h-[264px] rounded-[26px] border-[5px] border-neutral-800 dark:border-neutral-600 bg-white text-neutral-900 overflow-hidden text-[10px] leading-tight">${inner}</div>
+    <figcaption class="text-[12px] leading-snug text-center mt-1.5">${cap}</figcaption>
+  </figure>`;
+const fakePage = `
+  <div class="p-2 pt-4 space-y-1.5">
+    <div class="h-12 rounded-lg" style="background:linear-gradient(135deg,#F43F5E,#FB923C)"></div>
+    <div class="h-2 rounded bg-neutral-200 w-4/5"></div><div class="h-2 rounded bg-neutral-200 w-3/5"></div>
+    <div class="h-9 rounded-lg bg-neutral-100"></div><div class="h-9 rounded-lg bg-neutral-100"></div>
+  </div>`;
+const shareSheet = (rows, hi, apps) => `
+  <div class="absolute inset-0 bg-black/30"></div>
+  <div class="absolute inset-x-0 bottom-0 rounded-t-xl bg-neutral-100 px-1.5 pt-2 pb-3 space-y-1">
+    ${apps ? `<div class="flex justify-around pb-1">${apps.map(([c, t]) => `<span class="flex flex-col items-center gap-0.5"><span class="w-6 h-6 rounded-md" style="background:${c}"></span><span class="text-[8px]">${t}</span></span>`).join('')}</div>` : ''}
+    ${rows.map((r) => `<div class="rounded-md px-2 py-1.5 flex justify-between ${r === hi ? HI : 'bg-white'}"><span>${r}</span><span>${r === hi ? '👈' : ''}</span></div>`).join('')}
+  </div>`;
+const IOS_INSTALL = `
+  <div class="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 pt-1 pb-1">
+    ${phone(fakePage + `
+      <div class="absolute inset-x-0 bottom-0 px-1.5 pt-1.5 pb-3 flex items-center gap-1 bg-neutral-100">
+        <span class="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[13px]">‹</span>
+        <span class="flex-1 h-6 rounded-full bg-white flex items-center justify-center text-neutral-500 text-[9px]">東京旅行</span>
+        <span class="w-6 h-6 rounded-full flex items-center justify-center text-[13px] ${HI}">⋯</span>
+      </div>`, '① 用 Safari 開這個網頁，點右下角「⋯」<br><span class="text-neutral-500 dark:text-neutral-400">舊版 iOS：點下方的分享鍵</span>')}
+    ${phone(fakePage + shareSheet(['拷貝', '加入書籤', '加入主畫面', '尋找頁面'], '加入主畫面'),
+      '② 點「分享」，在選單中往下滑，點「加入主畫面」')}
+    ${phone(`
+      <div class="h-full bg-neutral-100 pt-4">
+        <div class="flex items-center justify-between px-2"><span class="text-[#007AFF]">取消</span><b>加入主畫面</b><span class="rounded-md px-1.5 py-0.5 ${HI}">加入</span></div>
+        <div class="mx-2 mt-3 rounded-lg bg-white p-2 flex items-center gap-2">
+          <img src="icon-180.png" alt="" class="w-9 h-9 rounded-lg"><div><p class="font-semibold text-[11px]">東京旅行</p><p class="text-neutral-400 text-[8.5px]">網址…</p></div></div>
+        <div class="mx-2 mt-2 rounded-lg bg-white p-2 flex items-center justify-between">
+          <span>以網頁 App 開啟</span><span class="relative w-7 h-4 rounded-full bg-emerald-500"><span class="absolute right-0.5 top-0.5 w-3 h-3 rounded-full bg-white"></span></span></div>
+      </div>`, '③ 名稱保留「東京旅行」，按右上角「加入」')}
+    ${phone(`
+      <div class="h-full p-2.5 pt-5 grid grid-cols-3 gap-x-2 gap-y-3 content-start" style="background:linear-gradient(160deg,#6366F1,#EC4899)">
+        ${Array.from({ length: 8 }, () => '<span class="flex flex-col items-center gap-0.5"><span class="w-9 h-9 rounded-[10px] bg-white/35"></span><span class="w-7 h-1.5 rounded bg-white/50"></span></span>').join('')}
+        <span class="flex flex-col items-center gap-0.5"><img src="icon-180.png" alt="" class="w-9 h-9 rounded-[10px] ring-2 ring-white"><span class="text-white font-semibold text-[8.5px]">東京旅行</span></span>
+      </div>`, '④ 之後從主畫面的圖示開啟，就像一般 App')}
+  </div>`;
+const IOS_SAVE = `
+  <div class="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 pt-1 pb-1">
+    ${phone(fakePage + shareSheet(['拷貝', '儲存到「檔案」'], '儲存到「檔案」', [['#06C755', 'LINE'], ['#34C759', '訊息'], ['#007AFF', '郵件']]),
+      '按「匯出備份」後跳出分享選單：點「儲存到檔案」，或直接傳 LINE')}
+    ${phone(`
+      <div class="h-full bg-neutral-100 pt-4 px-2">
+        <div class="flex items-center justify-between"><span class="text-[#007AFF]">取消</span><b>瀏覽</b><span class="w-6"></span></div>
+        <div class="mt-3 rounded-lg bg-white divide-y divide-neutral-100">
+          <div class="px-2 py-1.5 text-neutral-500">📁 Downloads</div>
+          <div class="px-2 py-1.5 flex items-center gap-1 ${HI}">📄 tokyo-backup-20261013.json</div>
+          <div class="px-2 py-1.5 text-neutral-500">📁 Documents</div>
+        </div>
+      </div>`, '按「匯入備份」後，從「檔案」裡點選備份檔')}
+  </div>`;
+
+const HELP = [
+  ['install', '📲', '加入主畫面', () => `
+    <p class="text-[14px] leading-relaxed">把網頁加入 iPhone 主畫面後，會像 App 一樣全螢幕開啟、沒網路也能看行程，資料也比較不會被系統清掉。</p>
+    ${IOS_INSTALL}
+    ${bullets([
+      '建議用 <b>Safari</b> 操作；其他瀏覽器的選單位置不一樣。',
+      'iOS 26 在第 ③ 步會有「以網頁 App 開啟」開關，請保持開啟。',
+      '第一次開啟需要連網，之後沒網路也能開；有網路時開啟會自動更新成最新版。',
+    ])}
+    ${noteBox('⚠️ <b>主畫面的 App 和 Safari 資料是分開的</b>：在 Safari 裡存的票券、記帳，從主畫面圖示打開看不到。建議一開始就只用主畫面的 App；如果已經在 Safari 填了資料，用下面的「備份與還原」搬過去。')}`],
+
+  ['overview', '🧭', '畫面導覽', () => `
+    ${shot('header.jpg', '上方：旅程狀態、日期列（含天氣）、右上角「?」開啟這份說明')}
+    ${bullets([
+      '最上方的紅字會顯示「距離出發還有幾天」或「旅程第幾天」。',
+      '點日期切換天數，也可以直接在畫面上<b>左右滑動</b>切換（行程、交通分頁）。',
+      '出發前約 10 天起，日期下方會出現當天天氣和最高溫。',
+    ])}
+    ${shot('nav.jpg', '下方分頁列：點同一個分頁可以捲回最上面')}
+    ${bullets([
+      '<b>行程</b>：每天的時間軸、天氣、要帶的東西、逛街店家。',
+      '<b>交通</b>：每一段怎麼搭車，一鍵開 Google Maps 導航。',
+      '<b>票券</b>：訂位編號、QR Code 截圖，到現場直接出示。',
+      '<b>錢包</b>：日圓換算、退稅計算、記帳和兩人分帳。',
+      '<b>工具</b>：附近搜尋、給司機看的地址、緊急電話、清單、備份。',
+    ])}`],
+
+  ['plan', '📅', '行程', () => `
+    ${shot('plan-weather.jpg', '天氣預報與當天要帶的東西')}
+    ${bullets([
+      '天氣卡顯示高低溫、每 2 小時的天氣和雨量，並給帶傘、穿搭建議；按「↻ 更新」重新抓取。',
+      '「要帶」的項目點一下就會打勾，出門前檢查一遍。',
+      '行程時段可能下雨時，該行程會出現 ☂️ 標籤。',
+    ])}
+    ${subHead('旅途當天：我在這 / 進度')}
+    ${shot('plan-progress.jpg', '點「📍 我在這」後，上方顯示進度是超前、準時還是落後')}
+    ${bullets([
+      '旅途當天，表定正在進行的行程會有紅色「● 表定現在」標示。',
+      '抵達景點時點卡片右上的 <b>📍 我在這</b>，上方會告訴你進度，後面的行程也會顯示推估的開始時間。',
+      '再點一次或按「重設」可以取消。',
+      '當天有預約時，上方會倒數下一個預約，點了會跳到票券。',
+    ])}
+    ${subHead('逛街：候選店家')}
+    ${shot('plan-shops.jpg', '展開候選店家，勾選要去的店，自動串成步行路線')}
+    ${steps([
+      '有 🛍️「候選店家」的行程，點卡片展開清單。',
+      '點左邊圓圈勾選／取消要去的店；下方會算出停留時間夠不夠（綠色足夠、黃色有點趕、紅色不夠）。',
+      '按藍色「🗺 步行路線」，Google Maps 會依序串起勾選的店；單一家店按右邊的「導航」。',
+    ])}
+    ${bullets([
+      '🟡 是可考慮刪除的店，🔴 是建議刪除的店；「時間有剩再逛」的店預設不勾選。',
+      '旅途當天會依營業時間標示「營業中／已打烊／幾點開門」。',
+      '在購物清單指定了店家的話，店名下方會出現 🛒 提醒。',
+      '卡片最下方的灰色交通列，點了會跳到「交通」分頁的對應路段。',
+    ])}
+    ${goTab('plan', '行程')}`],
+
+  ['route', '🚃', '交通', () => `
+    ${shot('route-leg.jpg', '每一段的起訖點、搭乘路線與時間')}
+    ${bullets([
+      '每張卡片是一段移動，路線標籤的顏色和日本車站的路線顏色一樣，轉車時對照招牌就好。',
+      '<b>Google Maps 導航</b>：用行程上的起點規劃，適合事先查看。',
+      '<b>從目前位置</b>：用 GPS 從你現在的位置出發，迷路或行程有變時用這個。',
+      '黃色 ⚠️ 是容易搭錯、要特別注意的地方。',
+      '有「替代方案」的路段點一下展開，例如改搭計程車或步行。',
+    ])}
+    ${goTab('route', '交通')}`],
+
+  ['ticket', '🎫', '票券', () => `
+    ${shot('ticket-top.jpg', '最上方倒數下一個預約，有存截圖時可以直接出示 QR Code')}
+    <p class="text-[14px] leading-relaxed">行程中有預約、門票、航班的項目會自動列在這裡，把訂位資料存進來，到現場就不用翻 Email。</p>
+    ${subHead('存入票券')}
+    ${steps([
+      '點票券右邊的「＋ 加入」（不在行程裡的票，按上方「＋ 新增其他票券」）。',
+      '填入<b>訂位編號</b>，之後在卡片上點「複製」就能貼上。',
+      '當天才會顯示 QR Code 的電子票，貼上<b>票券頁面連結</b>。',
+      '點「加入截圖」從相簿選 QR Code 或票券截圖（可多張）。',
+      '按「儲存」。',
+    ])}
+    ${shot('ticket-edit.jpg', '編輯票券：訂位編號、連結、備註、截圖')}
+    ${shot('ticket-full.jpg', '點截圖縮圖會全螢幕白底顯示，點一下關閉')}
+    ${noteBox('🔒 票券只存在這支手機，不會上傳。截圖存好後，記得到「工具 → 本機資料備份」匯出一份。')}
+    ${goTab('ticket', '票券')}`],
+
+  ['wallet', '💴', '錢包', () => `
+    ${subHead('💱 換算')}
+    ${shot('wallet-calc.jpg', '輸入日圓標價，馬上算出實際要付多少台幣')}
+    ${bullets([
+      '輸入標價（日圓含稅價），下方紅色卡片就是實際約付的台幣。',
+      '打開「扣除免稅 10%」，看退稅後的價格；「自訂折扣」可以算優惠券、會員折扣。',
+      '最下方可以反過來算「台幣 → 日圓」，抓預算用。',
+      '匯率會自動更新；沒網路時沿用上次取得的匯率。',
+    ])}
+    ${subHead('🧾 退稅累計')}
+    ${shot('wallet-basket.jpg', '同一家店一件一件加進來，看是否達到免稅門檻')}
+    ${steps([
+      '在上方輸入標價，按「🧾 加入退稅累計」。',
+      '同一家店、同一天的商品一件一件加進來，進度條滿了（未稅 ¥5,000）就能免稅。',
+      '結帳時出示<b>護照正本</b>，再按「結帳，記一筆」直接記到帳本。',
+    ])}
+    ${subHead('📒 記帳＋分帳')}
+    ${shot('wallet-ledger.jpg', '總花費、誰要給誰多少、現金剩多少、分類統計')}
+    ${steps([
+      '切到上方的「📒 記帳」，按「＋ 記一筆」。',
+      '輸入金額，選分類、付款方式、誰付的、怎麼分（兩人平分或只算一個人）。',
+      '上方會自動算出總花費，以及結算時<b>誰要給誰多少錢</b>。',
+    ])}
+    ${shot('wallet-ledger-edit.jpg', '記一筆的畫面')}
+    ${bullets([
+      '換匯或提款時按「🏧 現金入帳」，用現金付的花費會自動扣掉，隨時知道錢包還剩多少現金。',
+      '點任一筆紀錄可以修改或刪除；按「改名字」設定兩個人的名字。',
+      '在「換算」算好價錢後，也可以直接按「📝 記一筆」。',
+    ])}
+    ${goTab('calc', '錢包')}`],
+
+  ['tools', '🧰', '工具', () => `
+    ${shot('tools-top.jpg', '搜尋附近、給司機看的地址')}
+    ${bullets([
+      '<b>搜尋附近</b>：一鍵用 Google Maps 找附近的便利商店、廁所、置物櫃、ATM…。',
+      '<b>給司機看</b>：全螢幕放大顯示日文「請帶我到這裡」和目的地，搭計程車時直接給司機看。',
+    ])}
+    ${shot('tools-taxi.jpg', '給司機看的全螢幕畫面')}
+    ${shot('tools-sos.jpg', '緊急電話與我的資料，點「撥打」直接打電話')}
+    ${bullets([
+      '<b>緊急聯絡</b>：警察、救護車、駐日代表處等電話，點「撥打」直接撥出。',
+      '<b>我的資料</b>：建議出發前填好飯店日文地址、電話、保險和信用卡掛失電話；填了地址，「回飯店」畫面就會顯示給司機看。',
+    ])}
+    ${shot('tools-wish.jpg', '出發前清單與購物清單')}
+    ${bullets([
+      '<b>出發前清單</b>：打包時逐項打勾，也可以自己新增項目。',
+      '<b>購物清單</b>：記下想買的東西和預算，並勾選「可以在哪買」；逛到那家店時，行程的店家清單會提醒你。',
+      '<b>加入手機行事曆</b>：下載 .ics 檔後點「加入全部」，預約時間前 30 分鐘手機會提醒。從主畫面開啟沒反應的話，改用 Safari 開這個網頁再按一次。',
+    ])}
+    ${goTab('tools', '工具')}`],
+
+  ['backup', '💾', '備份與還原', () => `
+    <p class="text-[14px] leading-relaxed">票券、記帳、清單、我的資料和各種勾選狀態都只存在這支手機。<b>換手機、清除 Safari 資料、從 Safari 搬到主畫面 App</b>，或要把資料給旅伴時，用備份檔搬過去。</p>
+    ${shot('tools-backup.jpg', '在「工具」分頁最下方')}
+    ${subHead('匯出備份')}
+    ${steps([
+      '到「工具」分頁，捲到最下方的「🔒 本機資料備份」，按<b>「匯出備份」</b>。',
+      'iPhone 會跳出分享選單：點<b>「儲存到檔案」</b>，存到 iCloud Drive 或「我的 iPhone」；也可以直接傳給旅伴的 LINE。',
+      '備份檔名是 <span class="font-mono text-[13px]">tokyo-backup-日期.json</span>。',
+    ])}
+    ${IOS_SAVE}
+    ${subHead('匯入備份')}
+    ${steps([
+      '如果備份檔是從 LINE 收到的：先在 LINE 點開檔案 → 分享 →「儲存到檔案」。',
+      '到「工具」最下方，按<b>「匯入備份」</b>，從「檔案」中點選備份檔。',
+      '跳出確認視窗後按「好」，出現「已還原備份」就完成了。',
+    ])}
+    ${noteBox('⚠️ 匯入時，記帳、清單、我的資料會<b>整份換成備份檔的內容</b>（票券則是新增或更新，原本的不會被刪）。兩個人分別記帳的話，匯入會蓋掉自己的帳，建議由一個人負責記帳。')}
+    ${bullets([
+      '建議時機：出發前存好票券後匯出一次，旅途中每天晚上回飯店再匯出一次。',
+      '備份檔裡有訂位編號和電話，只傳給信任的人。',
+    ])}
+    ${goTab('tools', '工具')}`],
+
+  ['faq', '❓', '常見問題', () => `
+    ${[
+      ['沒有網路能用嗎？', '可以。行程、交通、票券、記帳、清單都能離線使用；天氣、匯率更新和 Google Maps 需要網路。'],
+      ['資料會上傳到網路嗎？', '不會。所有資料都只存在這支手機，網站看不到，也不會同步到別的裝置，所以要靠備份檔搬移。'],
+      ['畫面上的時間是哪裡的時間？', '都是<b>日本時間</b>（比台灣快 1 小時），標示「台灣時間」的除外。'],
+      ['行程好像不是最新的？', '連上網路後，把 App 從背景完全關掉再重新開啟。'],
+      ['「我在這」、進度、營業中的標示沒出現？', '這些功能只在旅途當天（2026/10/12–10/17）的當天日期才會顯示。'],
+    ].map(([q, a]) => `<div class="mt-3"><p class="text-[14.5px] font-bold">Q. ${q}</p><p class="text-[14px] leading-relaxed text-neutral-600 dark:text-neutral-300 mt-0.5">${a}</p></div>`).join('')}`],
+];
+
+function renderHelp() {
+  const toc = `
+    <div class="grid grid-cols-3 gap-2 mb-4">${HELP.map(([id, icon, title]) => `
+      <button data-help-jump="${id}" class="tap fade-in flex flex-col items-center gap-0.5 rounded-xl bg-white dark:bg-neutral-900 shadow-sm py-2.5">
+        <span class="text-[20px]">${icon}</span><span class="text-[12.5px] font-semibold">${title}</span></button>`).join('')}</div>`;
+  return `<p class="text-[14px] text-neutral-600 dark:text-neutral-300 leading-relaxed mb-3 px-1">第一次使用？建議先看「加入主畫面」和「備份與還原」。點下面的項目直接跳到該段說明。</p>`
+    + toc + HELP.map(([id, icon, title, body]) => `
+    <section id="help-${id}" class="fade-in rounded-2xl bg-white dark:bg-neutral-900 shadow-sm p-4 mb-4">
+      <h2 class="text-[19px] font-bold mb-2">${icon} ${title}</h2>${body()}
+    </section>`).join('')
+    + `<button data-help-jump="top" class="tap w-full rounded-xl bg-white dark:bg-neutral-900 shadow-sm text-[14px] font-semibold py-3">回到最上面 ↑</button>`;
+}
+
 /* ---------- 主渲染 ---------- */
-const VIEWS = { plan: ['行程', renderPlan], route: ['交通', renderRoute], ticket: ['票券', renderTicket], calc: ['錢包', renderWallet], tools: ['工具', renderTools] };
+const VIEWS = { plan: ['行程', renderPlan], route: ['交通', renderRoute], ticket: ['票券', renderTicket], calc: ['錢包', renderWallet], tools: ['工具', renderTools], help: ['使用說明', renderHelp] };
 const DAY_TABS = ['plan', 'route'];   // 有日期列、可左右滑動切換天數的分頁
 
 function render(opts = {}) {
@@ -1995,6 +2260,14 @@ document.addEventListener('click', (e) => {
   const act = (sel) => e.target.closest(sel);
   const quiet = () => render({ keepScroll: true, quiet: true });
   let el;
+
+  /* 使用說明：跳到某一段 */
+  if ((el = act('[data-help-jump]'))) {
+    const sec = document.getElementById('help-' + el.dataset.helpJump);
+    const top = sec ? sec.getBoundingClientRect().top + window.scrollY - document.querySelector('header').offsetHeight - 12 : 0;
+    window.scrollTo({ top, behavior: 'smooth' });
+    return;
+  }
 
   /* 編輯面板 */
   if (act('[data-sheet-close]')) { closeSheet(); return; }
